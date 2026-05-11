@@ -262,8 +262,90 @@ h2 {
   padding: 0 15px;
 }
 
+.loginButton.compact {
+  min-width: 104px;
+}
+
 .loginButton:active {
   background: var(--accent-pressed);
+}
+
+.authPanel {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.authPanel.loading {
+  background: var(--panel);
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+  padding: 12px 14px;
+}
+
+.authPanel.signedIn {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 8px;
+}
+
+.userBadge {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 210px;
+}
+
+.userBadge span {
+  display: grid;
+  gap: 2px;
+}
+
+.userBadge strong {
+  color: var(--ink);
+  font-size: 13px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userBadge small {
+  color: var(--muted);
+  font-size: 11px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kakaoButton,
+.secondaryLoginButton {
+  align-items: center;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 8px;
+  height: 42px;
+  justify-content: center;
+  padding: 0 15px;
+}
+
+.kakaoButton {
+  background: #fee500;
+  color: #191600;
+  min-width: 120px;
+}
+
+.secondaryLoginButton {
+  background: var(--panel);
+  color: var(--ink);
 }
 
 .strategyStrip {

@@ -78,6 +78,8 @@
 
 검증은 `npm run lint`와 `npm run build`로 통과했다.
 
+개발환경에서 `.env.local`이 없어도 `/api/auth/providers`를 확인할 수 있도록 dev 전용 fallback secret을 넣었다. 프로덕션에서는 `AUTH_SECRET`을 반드시 설정해야 한다.
+
 ## 2026-05-11 한글명과 이미지 적용 계획
 
 사용자가 포켓몬 명을 한글로 가져오고 캐릭터 이미지를 표시할 수 있는지 물었다. 프로토타입 단계에서는 PokeAPI sprites 저장소의 official artwork URL을 직접 참조한다.
@@ -101,3 +103,27 @@ Mega Dragonite처럼 PokeAPI에 별도 폼 이미지가 없는 샘플은 망나�
 샘플 풀을 현재 M-A 목록에 있는 포켓몬 기준으로 교체했다. 현재 샘플은 메가 망나뇽, 가디안, 어흥염, 키키링, 킬라플로르, 패리퍼, 코터스, 대도각참이다.
 
 위협 목록도 현재 M-A에 맞춰 메가 프테라, 메가 이상해꽃, 메가 팬텀, 키키링 중심으로 바꿨다.
+
+## 2026-05-11 OAuth 로그인 구현 계획
+
+사용자가 Google과 Kakao 로그인을 원했다. Auth.js 공식 문서 기준으로 `next-auth@beta`를 사용한다.
+
+구현 범위는 다음과 같다.
+
+- `src/auth.ts`에서 Google, Kakao Provider 설정.
+- `src/app/api/auth/[...nextauth]/route.ts` 라우트 핸들러 추가.
+- 클라이언트 `SessionProvider` 추가.
+- 상단 버튼을 실제 `signIn("google")`, `signIn("kakao")` 호출로 교체.
+- 로그인 후 사용자명, 이메일, 로그아웃 버튼 표시.
+
+실제 OAuth 동작에는 `.env.local`의 `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_KAKAO_ID`, `AUTH_KAKAO_SECRET` 값이 필요하다. 개발 콜백 URL은 Google과 Kakao 콘솔 모두 `http://localhost:3000/api/auth/callback/{provider}` 형태로 등록해야 한다.
+
+## 2026-05-11 OAuth 로그인 구현 결과
+
+`next-auth@beta`를 설치하고 Auth.js v5 방식으로 Google과 Kakao Provider를 연결했다. `/api/auth/[...nextauth]` 라우트가 생성되었고, 상단 로그인 영역은 세션 상태에 따라 Google/Kakao 로그인 버튼 또는 사용자 정보와 로그아웃 버튼을 표시한다.
+
+`AUTH_SETUP.md`와 `.env.example`을 추가했다. 실제 로그인을 테스트하려면 사용자가 Google Cloud Console과 Kakao Developers에서 OAuth 앱을 만들고 콜백 URL을 등록해야 한다.
+
+현재 저장 기능은 아직 DB 저장이 아니라 UI 버튼만 존재한다. 다음 단계에서 유저별 파티 저장 모델과 서버 액션을 연결해야 한다.
+
+검증은 `npm run lint`와 `npm run build`로 통과했다.

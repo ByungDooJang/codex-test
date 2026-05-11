@@ -3,6 +3,7 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
+import { AuthPanel } from "@/components/auth-panel";
 import {
   Activity,
   BarChart3,
@@ -10,7 +11,6 @@ import {
   ChevronDown,
   Crosshair,
   Database,
-  LogIn,
   Save,
   Search,
   Shield,
@@ -326,10 +326,7 @@ export default function HomePage() {
             <p className="eyebrow">Regulation M-A · Lv.50 · SP Format</p>
             <h1>목표 전략에서 바로 계산까지 이어지는 챔피언스 워크벤치</h1>
           </div>
-          <button className="loginButton">
-            <LogIn size={17} />
-            로그인 후 저장
-          </button>
+          <AuthPanel />
         </header>
 
         <section className="strategyStrip" aria-label="목표 전략 선택">
