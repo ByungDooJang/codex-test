@@ -93,3 +93,11 @@ Mega Dragonite처럼 PokeAPI에 별도 폼 이미지가 없는 샘플은 망나�
 팀 슬롯과 세트 편집기에 PokeAPI sprites official artwork 이미지를 표시한다. Next.js `remotePatterns`에 `raw.githubusercontent.com/PokeAPI/sprites/.../official-artwork/**`를 등록했고, 일반 `<img>` 대신 `next/image`를 사용한다.
 
 검증은 `npm run lint`와 `npm run build`로 통과했다. 샘플 이미지 URL은 HEAD 요청 기준 200 응답을 확인했다.
+
+## 2026-05-11 Regulation M-A 샘플 정합성 수정
+
+사용자가 샘플에 현재 포켓몬 챔피언스 Regulation M-A에 없는 포켓몬이 섞였다고 지적했다. 확인 결과 기존 샘플에는 `날개치는머리`, `뽀록나`, `우라오스`, `고릴타`, `토네로스`처럼 M-A eligible 목록에 없는 포켓몬이 포함되어 있었다.
+
+샘플 풀을 현재 M-A 목록에 있는 포켓몬 기준으로 교체했다. 현재 샘플은 메가 망나뇽, 가디안, 어흥염, 키키링, 킬라플로르, 패리퍼, 코터스, 대도각참이다.
+
+위협 목록도 현재 M-A에 맞춰 메가 프테라, 메가 이상해꽃, 메가 팬텀, 키키링 중심으로 바꿨다.

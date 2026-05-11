@@ -437,12 +437,14 @@ h2 {
 .typeFlying { background: #617bff; }
 .typeGhost { background: #4d4267; }
 .typeFairy { background: #b54d86; }
+.typePsychic { background: #d15c86; }
 .typeFire { background: #c44c22; }
 .typeDark { background: #3b342f; }
 .typeGrass { background: #2d7d46; }
 .typePoison { background: #7e238b; }
 .typeFighting { background: #9e3028; }
 .typeWater { background: #286bb8; }
+.typeRock { background: #8b7740; }
 .typeSteel { background: #59656c; }
 .typeNormal { background: #77776f; }
 
