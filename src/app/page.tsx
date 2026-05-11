@@ -1,266 +1,506 @@
 "use client";
+// 챔피언스 팀 빌더와 계산기 프로토타입 화면
 
-import Image from "next/image";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  ArrowRight,
-  Check,
-  ClipboardList,
-  Hammer,
-  Home,
-  Menu,
-  Ruler,
+  Activity,
+  BarChart3,
+  Calculator,
+  ChevronDown,
+  Crosshair,
+  Database,
+  LogIn,
+  Save,
   Search,
-  ShieldCheck,
-  X,
+  Shield,
+  Swords,
+  Target,
+  Zap,
 } from "lucide-react";
 
-const pins = [
-  { src: "/images/living-room.jpg", label: "거실 완공", className: "tall" },
-  { src: "/images/site-progress.jpg", label: "목공 현장", className: "mid" },
-  { src: "/images/kitchen-finish.jpg", label: "주방 리뉴얼", className: "tall" },
-  { src: "/images/material-board.jpg", label: "자재 보드", className: "square" },
-  { src: "/images/bath-detail.jpg", label: "욕실 디테일", className: "tall" },
-  { src: "/images/before-after.jpg", label: "전후 비교", className: "wide" },
-  { src: "/images/team-onsite.jpg", label: "현장 관리", className: "mid" },
-  { src: "/images/hero-completed.jpg", label: "입주 스타일링", className: "wide" },
+type StatKey = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
+type DamageClass = "physical" | "special";
+
+type Pokemon = {
+  name: string;
+  types: string[];
+  role: string;
+  ability: string;
+  item: string;
+  moves: string[];
+  base: Record<StatKey, number>;
+  sp: Record<StatKey, number>;
+};
+
+type Move = {
+  name: string;
+  type: string;
+  power: number;
+  class: DamageClass;
+};
+
+const statLabels: Record<StatKey, string> = {
+  hp: "H",
+  atk: "A",
+  def: "B",
+  spa: "C",
+  spd: "D",
+  spe: "S",
+};
+
+const strategies = [
+  {
+    name: "메가 에이스 밸런스",
+    note: "메가 에이스 1축 + 속도 제어 + 교체 안정성을 동시에 챙기는 표준형.",
+    slots: ["Mega Ace", "Speed Control", "Pivot", "Breaker", "Defensive Glue", "Cleaner"],
+  },
+  {
+    name: "트릭룸 컨트롤",
+    note: "저속 고화력 포켓몬을 중심으로 턴 압축과 후반 정리를 노리는 구조.",
+    slots: ["Setter", "Slow Attacker", "Redirect", "Wallbreaker", "Reset", "Endgame"],
+  },
+  {
+    name: "빠른 공격형",
+    note: "선공 압박과 2타 범위를 넓혀 상대 선출을 강제하는 대면 중심 구조.",
+    slots: ["Lead", "Fast Nuke", "Priority", "Coverage", "Anti Setup", "Cleaner"],
+  },
+  {
+    name: "날씨 사이클",
+    note: "날씨 시동과 교체 압박을 이용해 유리한 데미지 교환을 반복한다.",
+    slots: ["Weather Setter", "Abuser", "Pivot", "Check", "Utility", "Closer"],
+  },
 ];
 
-const services = [
+const pokemonPool: Pokemon[] = [
   {
-    icon: Home,
-    title: "주거 전체 리모델링",
-    body: "동선, 수납, 조명 계획을 한 번에 정리해 거주자의 생활 패턴에 맞는 집을 만듭니다.",
+    name: "Mega Dragonite",
+    types: ["Dragon", "Flying"],
+    role: "Mega Ace",
+    ability: "Multiscale",
+    item: "Dragoninite",
+    moves: ["Aerial Rend", "Extreme Speed", "Earthquake", "Protect"],
+    base: { hp: 91, atk: 134, def: 95, spa: 100, spd: 100, spe: 80 },
+    sp: { hp: 0, atk: 32, def: 0, spa: 0, spd: 2, spe: 32 },
   },
   {
-    icon: Ruler,
-    title: "부분 시공과 스타일링",
-    body: "주방, 욕실, 거실처럼 체감이 큰 공간부터 자재와 가구 배치까지 밀도 있게 다듬습니다.",
+    name: "Flutter Mane",
+    types: ["Ghost", "Fairy"],
+    role: "Fast Nuke",
+    ability: "Protosynthesis",
+    item: "Booster Energy",
+    moves: ["Moonblast", "Shadow Ball", "Icy Wind", "Protect"],
+    base: { hp: 55, atk: 55, def: 55, spa: 135, spd: 135, spe: 135 },
+    sp: { hp: 0, atk: 0, def: 2, spa: 32, spd: 0, spe: 32 },
   },
   {
-    icon: Hammer,
-    title: "현장 감리와 마감 체크",
-    body: "공정표, 사진 리포트, 하자 체크리스트로 공사 중간의 불안을 줄입니다.",
+    name: "Incineroar",
+    types: ["Fire", "Dark"],
+    role: "Pivot",
+    ability: "Intimidate",
+    item: "Safety Goggles",
+    moves: ["Fake Out", "Flare Blitz", "Knock Off", "Parting Shot"],
+    base: { hp: 95, atk: 115, def: 90, spa: 80, spd: 90, spe: 60 },
+    sp: { hp: 32, atk: 0, def: 18, spa: 0, spd: 16, spe: 0 },
+  },
+  {
+    name: "Amoonguss",
+    types: ["Grass", "Poison"],
+    role: "Defensive Glue",
+    ability: "Regenerator",
+    item: "Rocky Helmet",
+    moves: ["Spore", "Rage Powder", "Pollen Puff", "Protect"],
+    base: { hp: 114, atk: 85, def: 70, spa: 85, spd: 80, spe: 30 },
+    sp: { hp: 32, atk: 0, def: 20, spa: 0, spd: 14, spe: 0 },
+  },
+  {
+    name: "Urshifu-Rapid",
+    types: ["Fighting", "Water"],
+    role: "Breaker",
+    ability: "Unseen Fist",
+    item: "Mystic Water",
+    moves: ["Surging Strikes", "Close Combat", "Aqua Jet", "Detect"],
+    base: { hp: 100, atk: 130, def: 100, spa: 63, spd: 60, spe: 97 },
+    sp: { hp: 2, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 },
+  },
+  {
+    name: "Rillaboom",
+    types: ["Grass"],
+    role: "Support Answer",
+    ability: "Grassy Surge",
+    item: "Assault Vest",
+    moves: ["Fake Out", "Grassy Glide", "Wood Hammer", "U-turn"],
+    base: { hp: 100, atk: 125, def: 90, spa: 60, spd: 70, spe: 85 },
+    sp: { hp: 24, atk: 32, def: 0, spa: 0, spd: 10, spe: 0 },
+  },
+  {
+    name: "Tornadus",
+    types: ["Flying"],
+    role: "Speed Control",
+    ability: "Prankster",
+    item: "Covert Cloak",
+    moves: ["Tailwind", "Bleakwind Storm", "Taunt", "Protect"],
+    base: { hp: 79, atk: 115, def: 70, spa: 125, spd: 80, spe: 111 },
+    sp: { hp: 4, atk: 0, def: 0, spa: 30, spd: 0, spe: 32 },
+  },
+  {
+    name: "Kingambit",
+    types: ["Dark", "Steel"],
+    role: "Cleaner",
+    ability: "Defiant",
+    item: "Black Glasses",
+    moves: ["Kowtow Cleave", "Sucker Punch", "Iron Head", "Protect"],
+    base: { hp: 100, atk: 135, def: 120, spa: 60, spd: 85, spe: 50 },
+    sp: { hp: 22, atk: 32, def: 4, spa: 0, spd: 8, spe: 0 },
   },
 ];
 
-const process = ["상담", "실측", "디자인 제안", "시공", "입주 점검"];
+const moves: Move[] = [
+  { name: "Aerial Rend", type: "Flying", power: 120, class: "physical" },
+  { name: "Extreme Speed", type: "Normal", power: 80, class: "physical" },
+  { name: "Moonblast", type: "Fairy", power: 95, class: "special" },
+  { name: "Shadow Ball", type: "Ghost", power: 80, class: "special" },
+  { name: "Surging Strikes", type: "Water", power: 75, class: "physical" },
+  { name: "Kowtow Cleave", type: "Dark", power: 85, class: "physical" },
+  { name: "Bleakwind Storm", type: "Flying", power: 100, class: "special" },
+];
+
+const typeWeaknessRows = [
+  { type: "Rock", weak: 4, resist: 1, note: "Mega Dragonite 축의 최우선 보완 지점" },
+  { type: "Ice", weak: 3, resist: 2, note: "Amoonguss와 Dragonite 동시 압박" },
+  { type: "Fairy", weak: 2, resist: 2, note: "Kingambit 유지 시 대응 안정" },
+  { type: "Fire", weak: 2, resist: 3, note: "Rillaboom 보호용 물 타입 필요" },
+  { type: "Electric", weak: 2, resist: 1, note: "Flying 2축 사용 시 체크 필요" },
+];
+
+const threatList = [
+  { name: "Iron Boulder", risk: 88, reason: "Rock 압박 + 높은 스피드 라인" },
+  { name: "Mega Venusaur", risk: 64, reason: "수비 사이클과 상태이상으로 템포 지연" },
+  { name: "Chi-Yu", risk: 71, reason: "특수 화력으로 Incineroar 후내밀기 압박" },
+  { name: "Farigiraf", risk: 57, reason: "우선도 차단으로 후반 정리 루트 방해" },
+];
+
+function toStat(base: number, sp: number, stat: StatKey) {
+  const spAsEv = sp * 8;
+  if (stat === "hp") {
+    return Math.floor(((2 * base + 31 + Math.floor(spAsEv / 4)) * 50) / 100) + 60;
+  }
+
+  return Math.floor((Math.floor(((2 * base + 31 + Math.floor(spAsEv / 4)) * 50) / 100) + 5) * 1.0);
+}
+
+function spreadText(sp: Record<StatKey, number>) {
+  return (Object.keys(sp) as StatKey[])
+    .filter((key) => sp[key] > 0)
+    .map((key) => `${statLabels[key]}${sp[key]}`)
+    .join(" ");
+}
+
+function damageRange(attacker: Pokemon, defender: Pokemon, move: Move) {
+  const attackStat = move.class === "physical" ? "atk" : "spa";
+  const defenseStat = move.class === "physical" ? "def" : "spd";
+  const atk = toStat(attacker.base[attackStat], attacker.sp[attackStat], attackStat);
+  const def = toStat(defender.base[defenseStat], defender.sp[defenseStat], defenseStat);
+  const stab = attacker.types.includes(move.type) ? 1.5 : 1;
+  const baseDamage = Math.floor((Math.floor(((Math.floor((2 * 50) / 5 + 2) * move.power * atk) / def) / 50) + 2) * stab);
+  return {
+    min: Math.floor(baseDamage * 0.85),
+    max: baseDamage,
+    defenderHp: toStat(defender.base.hp, defender.sp.hp, "hp"),
+  };
+}
 
 export default function HomePage() {
-  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedStrategy, setSelectedStrategy] = useState(strategies[0]);
+  const [selectedSlot, setSelectedSlot] = useState(0);
+  const [team, setTeam] = useState<Pokemon[]>(pokemonPool.slice(0, 6));
+  const [attackerName, setAttackerName] = useState(pokemonPool[0].name);
+  const [defenderName, setDefenderName] = useState(pokemonPool[2].name);
+  const [moveName, setMoveName] = useState(moves[0].name);
+  const [savedTeams, setSavedTeams] = useState(["MA Balance v0.3", "TR Control 테스트"]);
+
+  const attacker = pokemonPool.find((pokemon) => pokemon.name === attackerName) ?? pokemonPool[0];
+  const defender = pokemonPool.find((pokemon) => pokemon.name === defenderName) ?? pokemonPool[1];
+  const move = moves.find((item) => item.name === moveName) ?? moves[0];
+  const damage = damageRange(attacker, defender, move);
+  const damagePercent = {
+    min: Math.round((damage.min / damage.defenderHp) * 1000) / 10,
+    max: Math.round((damage.max / damage.defenderHp) * 1000) / 10,
+  };
+
+  const selectedPokemon = team[selectedSlot];
+  const teamSummary = useMemo(() => {
+    const physical = team.filter((pokemon) =>
+      pokemon.moves.some((item) => moves.find((moveItem) => moveItem.name === item)?.class === "physical"),
+    ).length;
+    const special = team.filter((pokemon) =>
+      pokemon.moves.some((item) => moves.find((moveItem) => moveItem.name === item)?.class === "special"),
+    ).length;
+    const speedControl = team.some((pokemon) => pokemon.moves.includes("Tailwind") || pokemon.moves.includes("Icy Wind"));
+    const fakeOut = team.filter((pokemon) => pokemon.moves.includes("Fake Out")).length;
+
+    return { physical, special, speedControl, fakeOut };
+  }, [team]);
+
+  function updateSlot(name: string) {
+    const nextPokemon = pokemonPool.find((pokemon) => pokemon.name === name);
+    if (!nextPokemon) return;
+    setTeam((current) => current.map((pokemon, index) => (index === selectedSlot ? nextPokemon : pokemon)));
+  }
+
+  function saveCurrentTeam() {
+    const label = `${selectedStrategy.name} ${savedTeams.length + 1}`;
+    setSavedTeams((current) => [label, ...current]);
+  }
 
   return (
-    <main>
-      <nav className="nav" aria-label="주요 메뉴">
-        <button className="iconButton menuButton" aria-label="메뉴 열기">
-          <Menu size={22} />
-        </button>
-        <a className="brand" href="#top" aria-label="온하우스 홈">
-          <span className="brandMark">O</span>
-          <span>ONHOUSE</span>
+    <main className="appShell">
+      <aside className="sidebar">
+        <a className="brand" href="#top" aria-label="ChampForge 홈">
+          <span className="brandMark">CF</span>
+          <span>
+            ChampForge
+            <small>Champions Battle Lab</small>
+          </span>
         </a>
-        <div className="searchBar" aria-label="시공 사례 검색">
+
+        <label className="searchBox">
           <Search size={18} />
-          <span>공간, 평형, 스타일 검색</span>
-        </div>
-        <div className="navLinks">
-          <a href="#work">시공사례</a>
-          <a href="#process">진행방식</a>
-          <a href="#quote">견적문의</a>
-          <button className="ghostButton" onClick={() => setModalOpen(true)}>
-            로그인
+          <input placeholder="포켓몬, 기술, 도구 검색" />
+        </label>
+
+        <nav className="sideNav" aria-label="주요 기능">
+          <a href="#builder" className="active"><Swords size={17} /> 팀 빌더</a>
+          <a href="#damage"><Calculator size={17} /> 데미지 계산기</a>
+          <a href="#counters"><Crosshair size={17} /> 카운터 추천</a>
+          <a href="#data"><Database size={17} /> 데이터 허브</a>
+        </nav>
+
+        <section className="savedTeams" aria-label="저장 파티">
+          <div className="miniHeader">
+            <span>저장 파티</span>
+            <button onClick={saveCurrentTeam} aria-label="현재 파티 저장">
+              <Save size={16} />
+            </button>
+          </div>
+          {savedTeams.map((teamName) => (
+            <button key={teamName} className="savedTeam">
+              <span>{teamName}</span>
+              <small>Reg M-A · SP</small>
+            </button>
+          ))}
+        </section>
+      </aside>
+
+      <section className="mainWorkspace" id="top">
+        <header className="topBar">
+          <div>
+            <p className="eyebrow">Regulation M-A · Lv.50 · SP Format</p>
+            <h1>목표 전략에서 바로 계산까지 이어지는 챔피언스 워크벤치</h1>
+          </div>
+          <button className="loginButton">
+            <LogIn size={17} />
+            로그인 후 저장
           </button>
-        </div>
-        <button className="primaryButton stickyCta" onClick={() => setModalOpen(true)}>
-          상담 예약
-        </button>
-      </nav>
+        </header>
 
-      <section className="hero" id="top">
-        <div className="heroCopy">
-          <p className="eyebrow">서울·경기 주거 인테리어</p>
-          <h1>사진처럼 남는 집을, 공정표대로 완성합니다</h1>
-          <p className="heroBody">
-            온하우스는 상담, 설계, 시공, 입주 스타일링까지 한 팀이 책임지는
-            주거 리모델링 스튜디오입니다.
-          </p>
-          <div className="heroActions">
-            <button className="primaryButton" onClick={() => setModalOpen(true)}>
-              무료 상담 시작
+        <section className="strategyStrip" aria-label="목표 전략 선택">
+          {strategies.map((strategy) => (
+            <button
+              className={strategy.name === selectedStrategy.name ? "strategyChip selected" : "strategyChip"}
+              key={strategy.name}
+              onClick={() => setSelectedStrategy(strategy)}
+            >
+              <span>{strategy.name}</span>
+              <small>{strategy.slots.slice(0, 3).join(" · ")}</small>
             </button>
-            <a className="secondaryButton" href="#work">
-              시공 사진 보기
-            </a>
-          </div>
-        </div>
-        <div className="heroImageWrap">
-          <Image
-            src="/images/hero-completed.jpg"
-            alt="완공된 거실 인테리어"
-            fill
-            priority
-            sizes="(max-width: 900px) 100vw, 54vw"
-            className="heroImage"
-          />
-          <span className="photoPill">32평 아파트 완공</span>
-        </div>
-      </section>
+          ))}
+        </section>
 
-      <section className="categoryBand" aria-label="서비스 요약">
-        {services.map((service) => {
-          const Icon = service.icon;
-          return (
-            <article className="categoryTile" key={service.title}>
-              <span className="tileIcon">
-                <Icon size={22} />
+        <section className="workGrid" id="builder">
+          <section className="panel teamPanel">
+            <div className="panelHeader">
+              <div>
+                <p className="eyebrow">Team Builder</p>
+                <h2>{selectedStrategy.name}</h2>
+              </div>
+              <span className="statusPill">저장 가능 목업</span>
+            </div>
+            <p className="panelLead">{selectedStrategy.note}</p>
+            <div className="teamSlots">
+              {team.map((pokemon, index) => (
+                <button
+                  className={index === selectedSlot ? "teamSlot selected" : "teamSlot"}
+                  key={`${pokemon.name}-${index}`}
+                  onClick={() => setSelectedSlot(index)}
+                >
+                  <span className="slotNumber">{index + 1}</span>
+                  <span>
+                    <strong>{pokemon.name}</strong>
+                    <small>{selectedStrategy.slots[index] ?? pokemon.role}</small>
+                  </span>
+                  <span className="typeStack">
+                    {pokemon.types.map((type) => (
+                      <i className={`typeBadge type${type}`} key={type}>{type}</i>
+                    ))}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel editorPanel">
+            <div className="panelHeader">
+              <div>
+                <p className="eyebrow">Set Editor</p>
+                <h2>{selectedPokemon.name}</h2>
+              </div>
+              <span className="spreadBadge">{spreadText(selectedPokemon.sp)}</span>
+            </div>
+
+            <label className="fieldLabel">
+              포켓몬 교체
+              <span className="selectWrap">
+                <select value={selectedPokemon.name} onChange={(event) => updateSlot(event.target.value)}>
+                  {pokemonPool.map((pokemon) => (
+                    <option key={pokemon.name}>{pokemon.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={16} />
               </span>
-              <h2>{service.title}</h2>
-              <p>{service.body}</p>
-            </article>
-          );
-        })}
-      </section>
-
-      <section className="featureSection">
-        <div className="featureText">
-          <p className="eyebrow">Design to Build</p>
-          <h2>예쁜 제안보다 중요한 건, 완성 가능한 설계입니다</h2>
-          <p>
-            예산 안에서 가능한 자재를 먼저 고르고, 현장 실측 기준으로 도면을
-            조정합니다. 공사 중 바뀌는 내용은 사진과 체크리스트로 공유합니다.
-          </p>
-          <a className="tertiaryLink" href="#process">
-            진행 방식 확인 <ArrowRight size={16} />
-          </a>
-        </div>
-        <div className="featureImage">
-          <Image src="/images/site-progress.jpg" alt="인테리어 공사 현장" fill sizes="(max-width: 900px) 100vw, 48vw" />
-          <span className="photoPill">현장 리포트 제공</span>
-        </div>
-      </section>
-
-      <section className="masonrySection" id="work">
-        <div className="sectionHeader">
-          <div>
-            <p className="eyebrow">Portfolio</p>
-            <h2>공간별 시공 사진</h2>
-          </div>
-          <div className="chips" aria-label="필터">
-            <span className="chip active">전체</span>
-            <span className="chip">거실</span>
-            <span className="chip">주방</span>
-            <span className="chip">욕실</span>
-          </div>
-        </div>
-        <div className="masonryGrid">
-          {pins.map((pin) => (
-            <article className={`pinCard ${pin.className}`} key={pin.src}>
-              <Image src={pin.src} alt={pin.label} fill sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw" />
-              <span className="photoPill">{pin.label}</span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="splitFeature">
-        <div className="beforeAfter">
-          <Image src="/images/before-after.jpg" alt="주방 인테리어 전후 비교" fill sizes="(max-width: 900px) 100vw, 48vw" />
-        </div>
-        <div className="featureText">
-          <p className="eyebrow">Before to After</p>
-          <h2>생활감은 줄이고, 수납과 조도를 먼저 세웁니다</h2>
-          <p>
-            오래된 구조를 무작정 가리지 않습니다. 배관, 전기, 가구 치수를 먼저
-            정리한 뒤 매일 쓰는 동선이 편한 방향으로 마감합니다.
-          </p>
-          <ul className="checkList">
-            <li><Check size={18} /> 공간별 예산표 제공</li>
-            <li><Check size={18} /> 공정별 사진 리포트</li>
-            <li><Check size={18} /> 입주 전 하자 점검</li>
-          </ul>
-        </div>
-      </section>
-
-      <section className="processSection" id="process">
-        <div className="sectionHeader compact">
-          <div>
-            <p className="eyebrow">Process</p>
-            <h2>상담부터 입주까지 한 흐름으로</h2>
-          </div>
-          <ClipboardList size={32} />
-        </div>
-        <ol className="processList">
-          {process.map((item, index) => (
-            <li key={item}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              {item}
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="quoteStrip" id="quote">
-        <div>
-          <p className="eyebrow">Start Project</p>
-          <h2>우리 집 평형과 예산에 맞는 첫 견적을 받아보세요</h2>
-        </div>
-        <button className="primaryButton large" onClick={() => setModalOpen(true)}>
-          상담 예약하기
-        </button>
-      </section>
-
-      <footer className="footer">
-        <div className="footerBrand">
-          <span className="brandMark">O</span>
-          <strong>ONHOUSE</strong>
-          <p>© 2026 온하우스 인테리어</p>
-        </div>
-        <div>
-          <strong>서비스</strong>
-          <a>아파트 리모델링</a>
-          <a>주방·욕실 시공</a>
-          <a>입주 스타일링</a>
-        </div>
-        <div>
-          <strong>문의</strong>
-          <a>hello@onhouse.kr</a>
-          <a>02-000-2026</a>
-          <a>서울 성동구</a>
-        </div>
-        <div>
-          <strong>안심 계약</strong>
-          <a><ShieldCheck size={15} /> 표준 계약서</a>
-          <a>공정표 공유</a>
-          <a>A/S 체크리스트</a>
-        </div>
-      </footer>
-
-      {modalOpen ? (
-        <div className="modalLayer" role="dialog" aria-modal="true" aria-label="상담 예약">
-          <div className="modalCard">
-            <button className="modalClose" onClick={() => setModalOpen(false)} aria-label="닫기">
-              <X size={22} />
-            </button>
-            <h2>상담 예약</h2>
-            <p>평형, 지역, 희망 공사 범위를 남겨주시면 1영업일 안에 연락드립니다.</p>
-            <label>
-              이름
-              <input placeholder="홍길동" />
             </label>
-            <label>
-              연락처
-              <input placeholder="010-0000-0000" />
-            </label>
-            <label>
-              공사 범위
-              <input placeholder="예: 32평 전체 리모델링" />
-            </label>
-            <button className="primaryButton full" onClick={() => setModalOpen(false)}>
-              상담 요청 보내기
-            </button>
-          </div>
-        </div>
-      ) : null}
+
+            <div className="setMeta">
+              <span>특성 · {selectedPokemon.ability}</span>
+              <span>도구 · {selectedPokemon.item}</span>
+              <span>역할 · {selectedPokemon.role}</span>
+            </div>
+
+            <div className="moveGrid">
+              {selectedPokemon.moves.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+
+            <div className="spGrid" aria-label="스탯 포인트">
+              {(Object.keys(selectedPokemon.sp) as StatKey[]).map((key) => (
+                <div className="spCell" key={key}>
+                  <span>{statLabels[key]}</span>
+                  <strong>{selectedPokemon.sp[key]}</strong>
+                  <small>{toStat(selectedPokemon.base[key], selectedPokemon.sp[key], key)}</small>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel analysisPanel">
+            <div className="panelHeader">
+              <div>
+                <p className="eyebrow">Live Analysis</p>
+                <h2>파티 리스크</h2>
+              </div>
+              <BarChart3 size={24} />
+            </div>
+            <div className="metricGrid">
+              <div><span>물리 압박</span><strong>{teamSummary.physical}/6</strong></div>
+              <div><span>특수 압박</span><strong>{teamSummary.special}/6</strong></div>
+              <div><span>속도 제어</span><strong>{teamSummary.speedControl ? "있음" : "부족"}</strong></div>
+              <div><span>Fake Out</span><strong>{teamSummary.fakeOut}</strong></div>
+            </div>
+            <div className="weaknessTable">
+              {typeWeaknessRows.map((row) => (
+                <div className="weaknessRow" key={row.type}>
+                  <strong>{row.type}</strong>
+                  <span>{row.weak} weak / {row.resist} resist</span>
+                  <small>{row.note}</small>
+                </div>
+              ))}
+            </div>
+          </section>
+        </section>
+
+        <section className="lowerGrid">
+          <section className="panel damagePanel" id="damage">
+            <div className="panelHeader">
+              <div>
+                <p className="eyebrow">Damage Calculator</p>
+                <h2>챔피언스식 SP 계산 목업</h2>
+              </div>
+              <Calculator size={24} />
+            </div>
+            <div className="calcControls">
+              <label>
+                공격자
+                <select value={attackerName} onChange={(event) => setAttackerName(event.target.value)}>
+                  {pokemonPool.map((pokemon) => <option key={pokemon.name}>{pokemon.name}</option>)}
+                </select>
+              </label>
+              <label>
+                기술
+                <select value={moveName} onChange={(event) => setMoveName(event.target.value)}>
+                  {moves.map((item) => <option key={item.name}>{item.name}</option>)}
+                </select>
+              </label>
+              <label>
+                방어자
+                <select value={defenderName} onChange={(event) => setDefenderName(event.target.value)}>
+                  {pokemonPool.map((pokemon) => <option key={pokemon.name}>{pokemon.name}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="damageResult">
+              <div>
+                <span>{attacker.name}의 {move.name}</span>
+                <strong>{damage.min} - {damage.max}</strong>
+                <small>{defender.name} HP {damage.defenderHp} 기준 {damagePercent.min}% - {damagePercent.max}%</small>
+              </div>
+              <div className="koBox">
+                <strong>{damagePercent.max >= 100 ? "확정 1타 후보" : damagePercent.min >= 50 ? "확정 2타 후보" : "3타 이상"}</strong>
+                <small>날씨, 벽, 급소, 필드 보정은 다음 단계에서 세부 입력으로 분리한다.</small>
+              </div>
+            </div>
+          </section>
+
+          <section className="panel counterPanel" id="counters">
+            <div className="panelHeader">
+              <div>
+                <p className="eyebrow">Counter Recommender</p>
+                <h2>현재 파티 위협도</h2>
+              </div>
+              <Target size={24} />
+            </div>
+            <div className="threatList">
+              {threatList.map((threat) => (
+                <article className="threatItem" key={threat.name}>
+                  <div>
+                    <strong>{threat.name}</strong>
+                    <small>{threat.reason}</small>
+                  </div>
+                  <meter min="0" max="100" value={threat.risk} />
+                  <span>{threat.risk}</span>
+                </article>
+              ))}
+            </div>
+          </section>
+        </section>
+
+        <section className="dataGrid" id="data">
+          <article className="dataTile">
+            <Shield size={22} />
+            <strong>SP 우선 데이터 모델</strong>
+            <span>UI와 저장값은 `H32 A32 S2` 표기를 1급 값으로 다룬다.</span>
+          </article>
+          <article className="dataTile">
+            <Zap size={22} />
+            <strong>룰 버전 고정</strong>
+            <span>팀마다 Regulation 버전을 저장해 계산 결과 재현성을 확보한다.</span>
+          </article>
+          <article className="dataTile">
+            <Activity size={22} />
+            <strong>검증 대기 항목</strong>
+            <span>인게임 공식과 공개 계산기 비교 테스트가 필요하다.</span>
+          </article>
+        </section>
+      </section>
     </main>
   );
 }
