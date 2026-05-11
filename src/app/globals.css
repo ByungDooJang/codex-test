@@ -358,8 +358,8 @@ h2 {
   color: var(--ink);
   display: grid;
   gap: 10px;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
-  min-height: 64px;
+  grid-template-columns: 28px 54px minmax(0, 1fr) auto;
+  min-height: 76px;
   padding: 10px;
   text-align: left;
 }
@@ -380,6 +380,27 @@ h2 {
   height: 32px;
   justify-content: center;
   width: 32px;
+}
+
+.pokemonPortrait,
+.selectedPokemonHero img {
+  align-items: center;
+  background: var(--canvas);
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pokemonPortrait {
+  height: 54px;
+  width: 54px;
+}
+
+.pokemonPortrait img {
+  height: 52px;
+  object-fit: contain;
+  width: 52px;
 }
 
 .teamSlot strong,
@@ -431,6 +452,39 @@ h2 {
   font-size: 13px;
   font-weight: 900;
   gap: 8px;
+}
+
+.selectedPokemonHero {
+  align-items: center;
+  background: linear-gradient(135deg, var(--panel), #ffffff);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 14px;
+  margin-bottom: 14px;
+  min-height: 118px;
+  padding: 12px;
+}
+
+.selectedPokemonHero img {
+  height: 94px;
+  object-fit: contain;
+  width: 94px;
+}
+
+.selectedPokemonHero div {
+  display: grid;
+  gap: 6px;
+}
+
+.selectedPokemonHero strong {
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.selectedPokemonHero span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .selectWrap {
@@ -714,6 +768,16 @@ a:focus-visible {
   .weaknessRow,
   .threatItem {
     grid-template-columns: 1fr;
+  }
+
+  .pokemonPortrait {
+    height: 72px;
+    width: 72px;
+  }
+
+  .pokemonPortrait img {
+    height: 68px;
+    width: 68px;
   }
 
   .typeStack {

@@ -1,6 +1,7 @@
 "use client";
 // 챔피언스 팀 빌더와 계산기 프로토타입 화면
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import {
   Activity,
@@ -23,6 +24,9 @@ type DamageClass = "physical" | "special";
 
 type Pokemon = {
   name: string;
+  displayName: string;
+  dex: number;
+  image: string;
   types: string[];
   role: string;
   ability: string;
@@ -74,6 +78,9 @@ const strategies = [
 const pokemonPool: Pokemon[] = [
   {
     name: "Mega Dragonite",
+    displayName: "메가 망나뇽",
+    dex: 149,
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/149.png",
     types: ["Dragon", "Flying"],
     role: "Mega Ace",
     ability: "Multiscale",
@@ -84,6 +91,9 @@ const pokemonPool: Pokemon[] = [
   },
   {
     name: "Flutter Mane",
+    displayName: "날개치는머리",
+    dex: 987,
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/987.png",
     types: ["Ghost", "Fairy"],
     role: "Fast Nuke",
     ability: "Protosynthesis",
@@ -94,6 +104,9 @@ const pokemonPool: Pokemon[] = [
   },
   {
     name: "Incineroar",
+    displayName: "어흥염",
+    dex: 727,
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/727.png",
     types: ["Fire", "Dark"],
     role: "Pivot",
     ability: "Intimidate",
@@ -104,6 +117,9 @@ const pokemonPool: Pokemon[] = [
   },
   {
     name: "Amoonguss",
+    displayName: "뽀록나",
+    dex: 591,
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/591.png",
     types: ["Grass", "Poison"],
     role: "Defensive Glue",
     ability: "Regenerator",
@@ -114,6 +130,9 @@ const pokemonPool: Pokemon[] = [
   },
   {
     name: "Urshifu-Rapid",
+    displayName: "우라오스 연격",
+    dex: 892,
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10191.png",
     types: ["Fighting", "Water"],
     role: "Breaker",
     ability: "Unseen Fist",
@@ -124,6 +143,9 @@ const pokemonPool: Pokemon[] = [
   },
   {
     name: "Rillaboom",
+    displayName: "고릴타",
+    dex: 812,
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/812.png",
     types: ["Grass"],
     role: "Support Answer",
     ability: "Grassy Surge",
@@ -134,6 +156,9 @@ const pokemonPool: Pokemon[] = [
   },
   {
     name: "Tornadus",
+    displayName: "토네로스",
+    dex: 641,
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/641.png",
     types: ["Flying"],
     role: "Speed Control",
     ability: "Prankster",
@@ -144,6 +169,9 @@ const pokemonPool: Pokemon[] = [
   },
   {
     name: "Kingambit",
+    displayName: "대도각참",
+    dex: 983,
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/983.png",
     types: ["Dark", "Steel"],
     role: "Cleaner",
     ability: "Defiant",
@@ -165,18 +193,18 @@ const moves: Move[] = [
 ];
 
 const typeWeaknessRows = [
-  { type: "Rock", weak: 4, resist: 1, note: "Mega Dragonite 축의 최우선 보완 지점" },
-  { type: "Ice", weak: 3, resist: 2, note: "Amoonguss와 Dragonite 동시 압박" },
-  { type: "Fairy", weak: 2, resist: 2, note: "Kingambit 유지 시 대응 안정" },
-  { type: "Fire", weak: 2, resist: 3, note: "Rillaboom 보호용 물 타입 필요" },
+  { type: "Rock", weak: 4, resist: 1, note: "메가 망나뇽 축의 최우선 보완 지점" },
+  { type: "Ice", weak: 3, resist: 2, note: "뽀록나와 망나뇽 동시 압박" },
+  { type: "Fairy", weak: 2, resist: 2, note: "대도각참 유지 시 대응 안정" },
+  { type: "Fire", weak: 2, resist: 3, note: "고릴타 보호용 물 타입 필요" },
   { type: "Electric", weak: 2, resist: 1, note: "Flying 2축 사용 시 체크 필요" },
 ];
 
 const threatList = [
-  { name: "Iron Boulder", risk: 88, reason: "Rock 압박 + 높은 스피드 라인" },
-  { name: "Mega Venusaur", risk: 64, reason: "수비 사이클과 상태이상으로 템포 지연" },
-  { name: "Chi-Yu", risk: 71, reason: "특수 화력으로 Incineroar 후내밀기 압박" },
-  { name: "Farigiraf", risk: 57, reason: "우선도 차단으로 후반 정리 루트 방해" },
+  { name: "무쇠암석", risk: 88, reason: "Rock 압박 + 높은 스피드 라인" },
+  { name: "메가 이상해꽃", risk: 64, reason: "수비 사이클과 상태이상으로 템포 지연" },
+  { name: "위유이", risk: 71, reason: "특수 화력으로 어흥염 후내밀기 압박" },
+  { name: "키키링", risk: 57, reason: "우선도 차단으로 후반 정리 루트 방해" },
 ];
 
 function toStat(base: number, sp: number, stat: StatKey) {
@@ -334,9 +362,13 @@ export default function HomePage() {
                   onClick={() => setSelectedSlot(index)}
                 >
                   <span className="slotNumber">{index + 1}</span>
+                  <span className="pokemonPortrait">
+                    {/* 외부 공식 아트워크를 프로토타입에서 직접 표시한다. */}
+                    <Image src={pokemon.image} alt={`${pokemon.displayName} 이미지`} width={52} height={52} />
+                  </span>
                   <span>
-                    <strong>{pokemon.name}</strong>
-                    <small>{selectedStrategy.slots[index] ?? pokemon.role}</small>
+                    <strong>{pokemon.displayName}</strong>
+                    <small>No.{pokemon.dex} · {selectedStrategy.slots[index] ?? pokemon.role}</small>
                   </span>
                   <span className="typeStack">
                     {pokemon.types.map((type) => (
@@ -352,9 +384,23 @@ export default function HomePage() {
             <div className="panelHeader">
               <div>
                 <p className="eyebrow">Set Editor</p>
-                <h2>{selectedPokemon.name}</h2>
+                <h2>{selectedPokemon.displayName}</h2>
               </div>
               <span className="spreadBadge">{spreadText(selectedPokemon.sp)}</span>
+            </div>
+
+            <div className="selectedPokemonHero">
+              <Image
+                src={selectedPokemon.image}
+                alt={`${selectedPokemon.displayName} 공식 아트워크`}
+                width={94}
+                height={94}
+                priority
+              />
+              <div>
+                <strong>No.{selectedPokemon.dex}</strong>
+                <span>{selectedPokemon.name}</span>
+              </div>
             </div>
 
             <label className="fieldLabel">
@@ -362,7 +408,7 @@ export default function HomePage() {
               <span className="selectWrap">
                 <select value={selectedPokemon.name} onChange={(event) => updateSlot(event.target.value)}>
                   {pokemonPool.map((pokemon) => (
-                    <option key={pokemon.name}>{pokemon.name}</option>
+                    <option key={pokemon.name} value={pokemon.name}>{pokemon.displayName}</option>
                   ))}
                 </select>
                 <ChevronDown size={16} />
@@ -431,7 +477,7 @@ export default function HomePage() {
               <label>
                 공격자
                 <select value={attackerName} onChange={(event) => setAttackerName(event.target.value)}>
-                  {pokemonPool.map((pokemon) => <option key={pokemon.name}>{pokemon.name}</option>)}
+                  {pokemonPool.map((pokemon) => <option key={pokemon.name} value={pokemon.name}>{pokemon.displayName}</option>)}
                 </select>
               </label>
               <label>
@@ -443,15 +489,15 @@ export default function HomePage() {
               <label>
                 방어자
                 <select value={defenderName} onChange={(event) => setDefenderName(event.target.value)}>
-                  {pokemonPool.map((pokemon) => <option key={pokemon.name}>{pokemon.name}</option>)}
+                  {pokemonPool.map((pokemon) => <option key={pokemon.name} value={pokemon.name}>{pokemon.displayName}</option>)}
                 </select>
               </label>
             </div>
             <div className="damageResult">
               <div>
-                <span>{attacker.name}의 {move.name}</span>
+                <span>{attacker.displayName}의 {move.name}</span>
                 <strong>{damage.min} - {damage.max}</strong>
-                <small>{defender.name} HP {damage.defenderHp} 기준 {damagePercent.min}% - {damagePercent.max}%</small>
+                <small>{defender.displayName} HP {damage.defenderHp} 기준 {damagePercent.min}% - {damagePercent.max}%</small>
               </div>
               <div className="koBox">
                 <strong>{damagePercent.max >= 100 ? "확정 1타 후보" : damagePercent.min >= 50 ? "확정 2타 후보" : "3타 이상"}</strong>

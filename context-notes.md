@@ -77,3 +77,19 @@
 로그인과 저장은 실제 백엔드 연동이 아니라 프론트엔드 목업이다. 저장 버튼은 현재 전략명을 저장 목록에 추가한다. 다음 단계에서 Auth.js, DB, 실제 Team 모델을 연결해야 한다.
 
 검증은 `npm run lint`와 `npm run build`로 통과했다.
+
+## 2026-05-11 한글명과 이미지 적용 계획
+
+사용자가 포켓몬 명을 한글로 가져오고 캐릭터 이미지를 표시할 수 있는지 물었다. 프로토타입 단계에서는 PokeAPI sprites 저장소의 official artwork URL을 직접 참조한다.
+
+한글명은 우선 앱의 샘플 데이터에 직접 포함한다. 추후 실제 데이터 파이프라인을 만들 때 PokeAPI species의 다국어 이름 또는 별도 한국어 도감 데이터를 수집해 동기화한다.
+
+Mega Dragonite처럼 PokeAPI에 별도 폼 이미지가 없는 샘플은 망나뇽 기본 official artwork를 대체 이미지로 사용한다. 실제 챔피언스 전용 폼 아트가 필요하면 공식 사용 권한과 자산 출처 확인이 필요하다.
+
+## 2026-05-11 한글명과 이미지 적용 결과
+
+샘플 포켓몬 데이터에 `displayName`, `dex`, `image` 필드를 추가했다. 화면에서는 한글명을 우선 표시하고, 내부 선택값과 계산 키는 기존 영문 `name`을 유지한다.
+
+팀 슬롯과 세트 편집기에 PokeAPI sprites official artwork 이미지를 표시한다. Next.js `remotePatterns`에 `raw.githubusercontent.com/PokeAPI/sprites/.../official-artwork/**`를 등록했고, 일반 `<img>` 대신 `next/image`를 사용한다.
+
+검증은 `npm run lint`와 `npm run build`로 통과했다. 샘플 이미지 URL은 HEAD 요청 기준 200 응답을 확인했다.
