@@ -96,6 +96,29 @@ OAuth 다음 단계로 파티 저장 UX를 실제 동작하게 만든다. 아직
 
 검증은 `npm run lint`와 `npm run build`로 통과했다. 실제 클릭 저장은 브라우저 localStorage 기능이므로 수동 UI 확인이 추가로 필요하다.
 
+## 2026-05-12 Regulation M-A 실제 데이터 수집
+
+사용자가 현재 포켓몬 챔피언스에 있는 포켓몬만 실제 데이터로 가져오라고 요청했다.
+
+`scripts/fetch-champions-regulation-ma.py`를 추가했다. 이 스크립트는 Bulbapedia Regulation Set M-A 원문에서 `CPCard` 목록을 추출하고, PokeAPI로 한글명, 타입, 종족값, 특성, official artwork URL을 보강한다.
+
+생성된 데이터 파일은 `src/data/champions-regulation-ma.ts`다.
+
+현재 생성 결과는 다음과 같다.
+
+- eligible 포켓몬 213개.
+- 허용 메가진화 59개.
+
+앱의 팀 빌더 선택 목록과 데미지 계산기 공격자/방어자 선택은 이제 하드코딩 8마리가 아니라 이 213개 데이터를 사용한다. 저장 데이터는 이름 중복을 피하기 위해 포켓몬 이름 대신 데이터 `id` 배열을 저장하도록 바꿨다.
+
+주의할 점은 다음과 같다.
+
+- official artwork는 PokeAPI sprites를 사용한다.
+- 챔피언스 신규 메가진화의 실제 메가 종족값은 아직 앱 계산에 반영하지 않았다.
+- 기술, 도구, 특성의 챔피언스 전용 합법성은 아직 별도 데이터로 검증하지 않았다.
+
+검증은 `npm run lint`, `npm run build`, 로컬 `/` 응답 200으로 통과했다.
+
 ## 2026-05-11 한글명과 이미지 적용 계획
 
 사용자가 포켓몬 명을 한글로 가져오고 캐릭터 이미지를 표시할 수 있는지 물었다. 프로토타입 단계에서는 PokeAPI sprites 저장소의 official artwork URL을 직접 참조한다.

@@ -6,6 +6,12 @@ import { useEffect, useMemo, useState } from "react";
 import { AuthPanel } from "@/components/auth-panel";
 import { useSession } from "next-auth/react";
 import {
+  REGULATION_MA_ELIGIBLE_COUNT,
+  REGULATION_MA_MEGA_COUNT,
+  regulationMAEligiblePokemon,
+  type ChampionsPokemon,
+} from "@/data/champions-regulation-ma";
+import {
   Activity,
   BarChart3,
   Calculator,
@@ -23,12 +29,7 @@ import {
 type StatKey = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
 type DamageClass = "physical" | "special";
 
-type Pokemon = {
-  name: string;
-  displayName: string;
-  dex: number;
-  image: string;
-  types: string[];
+type Pokemon = ChampionsPokemon & {
   role: string;
   ability: string;
   item: string;
@@ -48,7 +49,8 @@ type SavedTeam = {
   id: string;
   label: string;
   strategyName: string;
-  pokemonNames: string[];
+  pokemonIds: string[];
+  pokemonNames?: string[];
   createdAt: string;
   owner: string;
 };
@@ -85,112 +87,60 @@ const strategies = [
   },
 ];
 
-const pokemonPool: Pokemon[] = [
-  {
-    name: "Mega Dragonite",
-    displayName: "메가 망나뇽",
-    dex: 149,
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/149.png",
-    types: ["Dragon", "Flying"],
-    role: "Mega Ace",
-    ability: "Multiscale",
-    item: "Dragoninite",
-    moves: ["Aerial Rend", "Extreme Speed", "Earthquake", "Protect"],
-    base: { hp: 91, atk: 134, def: 95, spa: 100, spd: 100, spe: 80 },
-    sp: { hp: 0, atk: 32, def: 0, spa: 0, spd: 2, spe: 32 },
-  },
-  {
-    name: "Gardevoir",
-    displayName: "가디안",
-    dex: 282,
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/282.png",
-    types: ["Psychic", "Fairy"],
-    role: "Special Nuke",
-    ability: "Trace",
-    item: "Gardevoirite",
-    moves: ["Moonblast", "Psychic", "Icy Wind", "Protect"],
-    base: { hp: 68, atk: 65, def: 65, spa: 125, spd: 115, spe: 80 },
-    sp: { hp: 0, atk: 0, def: 2, spa: 32, spd: 0, spe: 32 },
-  },
-  {
-    name: "Incineroar",
-    displayName: "어흥염",
-    dex: 727,
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/727.png",
-    types: ["Fire", "Dark"],
-    role: "Pivot",
-    ability: "Intimidate",
-    item: "Safety Goggles",
-    moves: ["Fake Out", "Flare Blitz", "Knock Off", "Parting Shot"],
-    base: { hp: 95, atk: 115, def: 90, spa: 80, spd: 90, spe: 60 },
-    sp: { hp: 32, atk: 0, def: 18, spa: 0, spd: 16, spe: 0 },
-  },
-  {
-    name: "Farigiraf",
-    displayName: "키키링",
-    dex: 981,
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/981.png",
-    types: ["Normal", "Psychic"],
-    role: "Defensive Glue",
-    ability: "Armor Tail",
-    item: "Safety Goggles",
-    moves: ["Trick Room", "Psychic", "Helping Hand", "Protect"],
-    base: { hp: 120, atk: 90, def: 70, spa: 110, spd: 70, spe: 60 },
-    sp: { hp: 32, atk: 0, def: 20, spa: 0, spd: 14, spe: 0 },
-  },
-  {
-    name: "Glimmora",
-    displayName: "킬라플로르",
-    dex: 970,
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/970.png",
-    types: ["Rock", "Poison"],
-    role: "Breaker",
-    ability: "Toxic Debris",
-    item: "Focus Sash",
-    moves: ["Power Gem", "Sludge Bomb", "Earth Power", "Spiky Shield"],
-    base: { hp: 83, atk: 55, def: 90, spa: 130, spd: 81, spe: 86 },
-    sp: { hp: 2, atk: 0, def: 0, spa: 32, spd: 0, spe: 32 },
-  },
-  {
-    name: "Pelipper",
-    displayName: "패리퍼",
-    dex: 279,
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/279.png",
-    types: ["Water", "Flying"],
-    role: "Support Answer",
-    ability: "Drizzle",
-    item: "Damp Rock",
-    moves: ["Tailwind", "Hurricane", "Weather Ball", "Protect"],
-    base: { hp: 60, atk: 50, def: 100, spa: 95, spd: 70, spe: 65 },
-    sp: { hp: 24, atk: 0, def: 0, spa: 32, spd: 10, spe: 0 },
-  },
-  {
-    name: "Torkoal",
-    displayName: "코터스",
-    dex: 324,
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/324.png",
-    types: ["Fire"],
-    role: "Speed Control",
-    ability: "Drought",
-    item: "Charcoal",
-    moves: ["Eruption", "Heat Wave", "Earth Power", "Protect"],
-    base: { hp: 70, atk: 85, def: 140, spa: 85, spd: 70, spe: 20 },
-    sp: { hp: 32, atk: 0, def: 0, spa: 32, spd: 2, spe: 0 },
-  },
-  {
-    name: "Kingambit",
-    displayName: "대도각참",
-    dex: 983,
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/983.png",
-    types: ["Dark", "Steel"],
-    role: "Cleaner",
-    ability: "Defiant",
-    item: "Black Glasses",
-    moves: ["Kowtow Cleave", "Sucker Punch", "Iron Head", "Protect"],
-    base: { hp: 100, atk: 135, def: 120, spa: 60, spd: 85, spe: 50 },
-    sp: { hp: 22, atk: 32, def: 4, spa: 0, spd: 8, spe: 0 },
-  },
-];
+const roleCycle = ["Mega Ace", "Special Nuke", "Pivot", "Defensive Glue", "Breaker", "Support Answer", "Speed Control", "Cleaner"];
+
+const defaultMovesByType: Record<string, string> = {
+  Dragon: "Aerial Rend",
+  Flying: "Aerial Rend",
+  Normal: "Extreme Speed",
+  Fairy: "Moonblast",
+  Psychic: "Psychic",
+  Rock: "Power Gem",
+  Water: "Weather Ball",
+  Fire: "Eruption",
+  Dark: "Kowtow Cleave",
+};
+
+function defaultSpFor(pokemon: ChampionsPokemon): Record<StatKey, number> {
+  const attackingStat = pokemon.base.atk >= pokemon.base.spa ? "atk" : "spa";
+  const spread: Record<StatKey, number> = { hp: 0, atk: 0, def: 0, spa: 0, spd: 2, spe: 32 };
+  spread[attackingStat] = 32;
+  if (pokemon.base.spe < 60) {
+    spread.hp = 32;
+    spread.spe = 0;
+  }
+  return spread;
+}
+
+function buildPokemonSet(pokemon: ChampionsPokemon, index: number): Pokemon {
+  const primaryMove = defaultMovesByType[pokemon.types[0]] ?? "Extreme Speed";
+  const secondaryMove = pokemon.types[1] ? defaultMovesByType[pokemon.types[1]] ?? "Protect" : "Protect";
+
+  return {
+    ...pokemon,
+    role: roleCycle[index % roleCycle.length],
+    ability: pokemon.abilities[0] ?? "unknown",
+    item: "미정",
+    moves: [primaryMove, secondaryMove, "Protect", "Coverage"],
+    sp: defaultSpFor(pokemon),
+  };
+}
+
+const pokemonPool: Pokemon[] = regulationMAEligiblePokemon.map((pokemon, index) => buildPokemonSet(pokemon, index));
+
+function getPokemonByName(name: string) {
+  return pokemonPool.find((pokemon) => pokemon.name === name);
+}
+
+function resolveSavedPokemonIds(savedTeam: SavedTeam) {
+  if (savedTeam.pokemonIds) return savedTeam.pokemonIds;
+  return (savedTeam.pokemonNames ?? [])
+    .map((name) => getPokemonByName(name)?.id)
+    .filter((id): id is string => Boolean(id));
+}
+
+const initialTeamNames = ["Dragonite", "Gardevoir", "Incineroar", "Farigiraf", "Glimmora", "Pelipper"];
+const initialTeam = initialTeamNames.map((name) => getPokemonByName(name)).filter((pokemon): pokemon is Pokemon => Boolean(pokemon));
 
 const moves: Move[] = [
   { name: "Aerial Rend", type: "Flying", power: 120, class: "physical" },
@@ -252,17 +202,17 @@ export default function HomePage() {
   const { data: session } = useSession();
   const [selectedStrategy, setSelectedStrategy] = useState(strategies[0]);
   const [selectedSlot, setSelectedSlot] = useState(0);
-  const [team, setTeam] = useState<Pokemon[]>(pokemonPool.slice(0, 6));
-  const [attackerName, setAttackerName] = useState(pokemonPool[0].name);
-  const [defenderName, setDefenderName] = useState(pokemonPool[2].name);
+  const [team, setTeam] = useState<Pokemon[]>(initialTeam.length === 6 ? initialTeam : pokemonPool.slice(0, 6));
+  const [attackerId, setAttackerId] = useState((getPokemonByName("Dragonite") ?? pokemonPool[0]).id);
+  const [defenderId, setDefenderId] = useState((getPokemonByName("Incineroar") ?? pokemonPool[2]).id);
   const [moveName, setMoveName] = useState(moves[0].name);
   const [savedTeams, setSavedTeams] = useState<SavedTeam[]>([]);
   const [saveMessage, setSaveMessage] = useState("브라우저 저장소 사용 중");
   const ownerKey = session?.user?.email ?? "guest";
   const storageKey = `champforge:teams:${ownerKey}`;
 
-  const attacker = pokemonPool.find((pokemon) => pokemon.name === attackerName) ?? pokemonPool[0];
-  const defender = pokemonPool.find((pokemon) => pokemon.name === defenderName) ?? pokemonPool[1];
+  const attacker = pokemonPool.find((pokemon) => pokemon.id === attackerId) ?? pokemonPool[0];
+  const defender = pokemonPool.find((pokemon) => pokemon.id === defenderId) ?? pokemonPool[1];
   const move = moves.find((item) => item.name === moveName) ?? moves[0];
   const damage = damageRange(attacker, defender, move);
   const damagePercent = {
@@ -311,8 +261,8 @@ export default function HomePage() {
     return { physical, special, speedControl, fakeOut };
   }, [team]);
 
-  function updateSlot(name: string) {
-    const nextPokemon = pokemonPool.find((pokemon) => pokemon.name === name);
+  function updateSlot(id: string) {
+    const nextPokemon = pokemonPool.find((pokemon) => pokemon.id === id);
     if (!nextPokemon) return;
     setTeam((current) => current.map((pokemon, index) => (index === selectedSlot ? nextPokemon : pokemon)));
   }
@@ -322,7 +272,7 @@ export default function HomePage() {
       id: `${Date.now()}-${selectedStrategy.name}`,
       label: `${selectedStrategy.name} ${savedTeams.length + 1}`,
       strategyName: selectedStrategy.name,
-      pokemonNames: team.map((pokemon) => pokemon.name),
+      pokemonIds: team.map((pokemon) => pokemon.id),
       createdAt: new Date().toISOString(),
       owner: ownerKey,
     };
@@ -337,8 +287,9 @@ export default function HomePage() {
 
   function loadSavedTeam(savedTeam: SavedTeam) {
     const nextStrategy = strategies.find((strategy) => strategy.name === savedTeam.strategyName) ?? strategies[0];
-    const nextTeam = savedTeam.pokemonNames
-      .map((name) => pokemonPool.find((pokemon) => pokemon.name === name))
+    const savedPokemonIds = resolveSavedPokemonIds(savedTeam);
+    const nextTeam = savedPokemonIds
+      .map((id) => pokemonPool.find((pokemon) => pokemon.id === id))
       .filter((pokemon): pokemon is Pokemon => Boolean(pokemon));
 
     if (nextTeam.length !== 6) {
@@ -389,7 +340,7 @@ export default function HomePage() {
           {savedTeams.map((savedTeam) => (
             <button key={savedTeam.id} className="savedTeam" onClick={() => loadSavedTeam(savedTeam)}>
               <span>{savedTeam.label}</span>
-              <small>{savedTeam.pokemonNames.slice(0, 3).join(" · ")}</small>
+              <small>{resolveSavedPokemonIds(savedTeam).slice(0, 3).map((id) => pokemonPool.find((pokemon) => pokemon.id === id)?.displayName ?? id).join(" · ")}</small>
             </button>
           ))}
         </section>
@@ -400,6 +351,7 @@ export default function HomePage() {
           <div>
             <p className="eyebrow">Regulation M-A · Lv.50 · SP Format</p>
             <h1>목표 전략에서 바로 계산까지 이어지는 챔피언스 워크벤치</h1>
+            <p className="dataCount">현재 eligible {REGULATION_MA_ELIGIBLE_COUNT}마리 · 메가진화 {REGULATION_MA_MEGA_COUNT}종 데이터 사용 중</p>
           </div>
           <AuthPanel onSaveTeam={saveCurrentTeam} savedTeamCount={savedTeams.length} />
         </header>
@@ -479,9 +431,9 @@ export default function HomePage() {
             <label className="fieldLabel">
               포켓몬 교체
               <span className="selectWrap">
-                <select value={selectedPokemon.name} onChange={(event) => updateSlot(event.target.value)}>
+                <select value={selectedPokemon.id} onChange={(event) => updateSlot(event.target.value)}>
                   {pokemonPool.map((pokemon) => (
-                    <option key={pokemon.name} value={pokemon.name}>{pokemon.displayName}</option>
+                    <option key={pokemon.id} value={pokemon.id}>No.{pokemon.dex} {pokemon.displayName}</option>
                   ))}
                 </select>
                 <ChevronDown size={16} />
@@ -549,8 +501,8 @@ export default function HomePage() {
             <div className="calcControls">
               <label>
                 공격자
-                <select value={attackerName} onChange={(event) => setAttackerName(event.target.value)}>
-                  {pokemonPool.map((pokemon) => <option key={pokemon.name} value={pokemon.name}>{pokemon.displayName}</option>)}
+                <select value={attackerId} onChange={(event) => setAttackerId(event.target.value)}>
+                  {pokemonPool.map((pokemon) => <option key={pokemon.id} value={pokemon.id}>No.{pokemon.dex} {pokemon.displayName}</option>)}
                 </select>
               </label>
               <label>
@@ -561,8 +513,8 @@ export default function HomePage() {
               </label>
               <label>
                 방어자
-                <select value={defenderName} onChange={(event) => setDefenderName(event.target.value)}>
-                  {pokemonPool.map((pokemon) => <option key={pokemon.name} value={pokemon.name}>{pokemon.displayName}</option>)}
+                <select value={defenderId} onChange={(event) => setDefenderId(event.target.value)}>
+                  {pokemonPool.map((pokemon) => <option key={pokemon.id} value={pokemon.id}>No.{pokemon.dex} {pokemon.displayName}</option>)}
                 </select>
               </label>
             </div>
