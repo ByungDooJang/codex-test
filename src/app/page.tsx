@@ -92,15 +92,24 @@ const strategies = [
 const roleCycle = ["Mega Ace", "Special Nuke", "Pivot", "Defensive Glue", "Breaker", "Support Answer", "Speed Control", "Cleaner"];
 
 const defaultMovesByType: Record<string, string> = {
-  Dragon: "Aerial Rend",
-  Flying: "Aerial Rend",
+  Dragon: "Dragon Claw",
+  Flying: "Fly",
   Normal: "Extreme Speed",
   Fairy: "Moonblast",
   Psychic: "Psychic",
   Rock: "Power Gem",
-  Water: "Weather Ball",
-  Fire: "Eruption",
+  Water: "Surf",
+  Fire: "Flamethrower",
   Dark: "Kowtow Cleave",
+  Poison: "Sludge Bomb",
+  Steel: "Iron Head",
+  Ground: "Earth Power",
+  Grass: "Energy Ball",
+  Electric: "Thunderbolt",
+  Bug: "Bug Buzz",
+  Fighting: "Close Combat",
+  Ghost: "Shadow Ball",
+  Ice: "Ice Beam",
 };
 
 function defaultSpFor(pokemon: ChampionsPokemon): Record<StatKey, number> {
@@ -145,22 +154,66 @@ const initialTeamNames = ["Dragonite", "Gardevoir", "Incineroar", "Farigiraf", "
 const initialTeam = initialTeamNames.map((name) => getPokemonByName(name)).filter((pokemon): pokemon is Pokemon => Boolean(pokemon));
 
 const moves: Move[] = [
-  { name: "Aerial Rend", displayName: "에어리얼렌드", type: "Flying", power: 120, class: "physical" },
+  { name: "Dragon Claw", displayName: "드래곤클로", type: "Dragon", power: 80, class: "physical" },
+  { name: "Fly", displayName: "공중날기", type: "Flying", power: 90, class: "physical" },
   { name: "Extreme Speed", displayName: "신속", type: "Normal", power: 80, class: "physical" },
   { name: "Moonblast", displayName: "문포스", type: "Fairy", power: 95, class: "special" },
   { name: "Psychic", displayName: "사이코키네시스", type: "Psychic", power: 90, class: "special" },
   { name: "Power Gem", displayName: "파워젬", type: "Rock", power: 80, class: "special" },
-  { name: "Weather Ball", displayName: "웨더볼", type: "Water", power: 100, class: "special" },
-  { name: "Eruption", displayName: "분화", type: "Fire", power: 150, class: "special" },
+  { name: "Surf", displayName: "파도타기", type: "Water", power: 90, class: "special" },
+  { name: "Flamethrower", displayName: "화염방사", type: "Fire", power: 90, class: "special" },
   { name: "Kowtow Cleave", displayName: "도각참", type: "Dark", power: 85, class: "physical" },
+  { name: "Sludge Bomb", displayName: "오물폭탄", type: "Poison", power: 90, class: "special" },
+  { name: "Iron Head", displayName: "아이언헤드", type: "Steel", power: 80, class: "physical" },
+  { name: "Earth Power", displayName: "대지의힘", type: "Ground", power: 90, class: "special" },
+  { name: "Energy Ball", displayName: "에너지볼", type: "Grass", power: 90, class: "special" },
+  { name: "Thunderbolt", displayName: "10만볼트", type: "Electric", power: 90, class: "special" },
+  { name: "Bug Buzz", displayName: "벌레의야단법석", type: "Bug", power: 90, class: "special" },
+  { name: "Close Combat", displayName: "인파이트", type: "Fighting", power: 120, class: "physical" },
+  { name: "Shadow Ball", displayName: "섀도볼", type: "Ghost", power: 80, class: "special" },
+  { name: "Ice Beam", displayName: "냉동빔", type: "Ice", power: 90, class: "special" },
 ];
 
+const moveNameKoFallback: Record<string, string> = {
+  Protect: "방어",
+  Coverage: "견제기",
+  "Fake Out": "속이기",
+  "Icy Wind": "얼어붙은바람",
+  Tailwind: "순풍",
+};
+
+const abilityNameKoOverrides: Record<string, string> = {
+  "armor-tail": "테일아머",
+  "beast-boost": "비스트부스트",
+  "big-pecks": "부풀린가슴",
+  "clear-body": "클리어바디",
+  "defiant": "오기",
+  "drought": "가뭄",
+  "drizzle": "잔비",
+  "flame-body": "불꽃몸",
+  "flash-fire": "타오르는불꽃",
+  "friend-guard": "프렌드가드",
+  "good-as-gold": "황금몸",
+  "intimidate": "위협",
+  "lightning-rod": "피뢰침",
+  "magic-guard": "매직가드",
+  "multiscale": "멀티스케일",
+  "mold-breaker": "틀깨기",
+  "prankster": "짓궂은마음",
+  "sharpness": "예리함",
+  "solid-rock": "하드록",
+  "tailwind": "순풍",
+  "technician": "테크니션",
+  "toxic-debris": "독치장",
+  "unaware": "천진",
+};
+
 function abilityKo(ability: string) {
-  return regulationMAAbilityNameKo[ability as keyof typeof regulationMAAbilityNameKo] ?? ability;
+  return abilityNameKoOverrides[ability] ?? regulationMAAbilityNameKo[ability as keyof typeof regulationMAAbilityNameKo] ?? ability;
 }
 
 function moveKo(moveName: string) {
-  return moves.find((move) => move.name === moveName)?.displayName ?? moveName;
+  return moves.find((move) => move.name === moveName)?.displayName ?? moveNameKoFallback[moveName] ?? moveName;
 }
 
 const typeWeaknessRows = [
