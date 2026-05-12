@@ -4,7 +4,12 @@
 import { signIn, signOut, useSession } from "next-auth/react";
 import { LogIn, LogOut, Save, UserRound } from "lucide-react";
 
-export function AuthPanel() {
+type AuthPanelProps = {
+  onSaveTeam: () => void;
+  savedTeamCount: number;
+};
+
+export function AuthPanel({ onSaveTeam, savedTeamCount }: AuthPanelProps) {
   const { data: session, status } = useSession();
 
   if (status === "loading") {
@@ -21,9 +26,9 @@ export function AuthPanel() {
             <small>{session.user.email ?? "OAuth session"}</small>
           </span>
         </div>
-        <button className="loginButton compact" type="button">
+        <button className="loginButton compact" type="button" onClick={onSaveTeam}>
           <Save size={16} />
-          파티 저장
+          파티 저장 {savedTeamCount}
         </button>
         <button className="secondaryLoginButton" type="button" onClick={() => signOut()}>
           <LogOut size={16} />

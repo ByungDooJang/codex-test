@@ -2,8 +2,9 @@
 // 챔피언스 팀 빌더와 계산기 프로토타입 화면
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AuthPanel } from "@/components/auth-panel";
+import { useSession } from "next-auth/react";
 import {
   Activity,
   BarChart3,
@@ -41,6 +42,15 @@ type Move = {
   type: string;
   power: number;
   class: DamageClass;
+};
+
+type SavedTeam = {
+  id: string;
+  label: string;
+  strategyName: string;
+  pokemonNames: string[];
+  createdAt: string;
+  owner: string;
 };
 
 const statLabels: Record<StatKey, string> = {
@@ -239,13 +249,17 @@ function damageRange(attacker: Pokemon, defender: Pokemon, move: Move) {
 }
 
 export default function HomePage() {
+  const { data: session } = useSession();
   const [selectedStrategy, setSelectedStrategy] = useState(strategies[0]);
   const [selectedSlot, setSelectedSlot] = useState(0);
   const [team, setTeam] = useState<Pokemon[]>(pokemonPool.slice(0, 6));
   const [attackerName, setAttackerName] = useState(pokemonPool[0].name);
   const [defenderName, setDefenderName] = useState(pokemonPool[2].name);
   const [moveName, setMoveName] = useState(moves[0].name);
-  const [savedTeams, setSavedTeams] = useState(["MA Balance v0.3", "TR Control 테스트"]);
+  const [savedTeams, setSavedTeams] = useState<SavedTeam[]>([]);
+  const [saveMessage, setSaveMessage] = useState("브라우저 저장소 사용 중");
+  const ownerKey = session?.user?.email ?? "guest";
+  const storageKey = `champforge:teams:${ownerKey}`;
 
   const attacker = pokemonPool.find((pokemon) => pokemon.name === attackerName) ?? pokemonPool[0];
   const defender = pokemonPool.find((pokemon) => pokemon.name === defenderName) ?? pokemonPool[1];
@@ -257,6 +271,33 @@ export default function HomePage() {
   };
 
   const selectedPokemon = team[selectedSlot];
+
+  useEffect(() => {
+    let active = true;
+
+    queueMicrotask(() => {
+      if (!active) return;
+      const rawSavedTeams = window.localStorage.getItem(storageKey);
+      if (!rawSavedTeams) {
+        setSavedTeams([]);
+        return;
+      }
+
+      try {
+        const parsedTeams = JSON.parse(rawSavedTeams) as SavedTeam[];
+        setSavedTeams(parsedTeams);
+        setSaveMessage(`${parsedTeams.length}개 파티 불러옴`);
+      } catch {
+        setSavedTeams([]);
+        setSaveMessage("저장 데이터를 읽지 못함");
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [storageKey]);
+
   const teamSummary = useMemo(() => {
     const physical = team.filter((pokemon) =>
       pokemon.moves.some((item) => moves.find((moveItem) => moveItem.name === item)?.class === "physical"),
@@ -277,8 +318,38 @@ export default function HomePage() {
   }
 
   function saveCurrentTeam() {
-    const label = `${selectedStrategy.name} ${savedTeams.length + 1}`;
-    setSavedTeams((current) => [label, ...current]);
+    const nextTeam: SavedTeam = {
+      id: `${Date.now()}-${selectedStrategy.name}`,
+      label: `${selectedStrategy.name} ${savedTeams.length + 1}`,
+      strategyName: selectedStrategy.name,
+      pokemonNames: team.map((pokemon) => pokemon.name),
+      createdAt: new Date().toISOString(),
+      owner: ownerKey,
+    };
+
+    setSavedTeams((current) => {
+      const nextTeams = [nextTeam, ...current];
+      window.localStorage.setItem(storageKey, JSON.stringify(nextTeams));
+      return nextTeams;
+    });
+    setSaveMessage(`${nextTeam.label} 저장됨`);
+  }
+
+  function loadSavedTeam(savedTeam: SavedTeam) {
+    const nextStrategy = strategies.find((strategy) => strategy.name === savedTeam.strategyName) ?? strategies[0];
+    const nextTeam = savedTeam.pokemonNames
+      .map((name) => pokemonPool.find((pokemon) => pokemon.name === name))
+      .filter((pokemon): pokemon is Pokemon => Boolean(pokemon));
+
+    if (nextTeam.length !== 6) {
+      setSaveMessage("저장 파티 데이터를 복원하지 못함");
+      return;
+    }
+
+    setSelectedStrategy(nextStrategy);
+    setTeam(nextTeam);
+    setSelectedSlot(0);
+    setSaveMessage(`${savedTeam.label} 불러옴`);
   }
 
   return (
@@ -306,15 +377,19 @@ export default function HomePage() {
 
         <section className="savedTeams" aria-label="저장 파티">
           <div className="miniHeader">
-            <span>저장 파티</span>
+            <span>저장 파티 · {savedTeams.length}</span>
             <button onClick={saveCurrentTeam} aria-label="현재 파티 저장">
               <Save size={16} />
             </button>
           </div>
-          {savedTeams.map((teamName) => (
-            <button key={teamName} className="savedTeam">
-              <span>{teamName}</span>
-              <small>Reg M-A · SP</small>
+          <p className="saveMessage">{saveMessage}</p>
+          {savedTeams.length === 0 ? (
+            <div className="emptySavedTeam">아직 저장된 파티가 없습니다.</div>
+          ) : null}
+          {savedTeams.map((savedTeam) => (
+            <button key={savedTeam.id} className="savedTeam" onClick={() => loadSavedTeam(savedTeam)}>
+              <span>{savedTeam.label}</span>
+              <small>{savedTeam.pokemonNames.slice(0, 3).join(" · ")}</small>
             </button>
           ))}
         </section>
@@ -326,7 +401,7 @@ export default function HomePage() {
             <p className="eyebrow">Regulation M-A · Lv.50 · SP Format</p>
             <h1>목표 전략에서 바로 계산까지 이어지는 챔피언스 워크벤치</h1>
           </div>
-          <AuthPanel />
+          <AuthPanel onSaveTeam={saveCurrentTeam} savedTeamCount={savedTeams.length} />
         </header>
 
         <section className="strategyStrip" aria-label="목표 전략 선택">
@@ -349,7 +424,7 @@ export default function HomePage() {
                 <p className="eyebrow">Team Builder</p>
                 <h2>{selectedStrategy.name}</h2>
               </div>
-              <span className="statusPill">저장 가능 목업</span>
+              <span className="statusPill">localStorage 저장</span>
             </div>
             <p className="panelLead">{selectedStrategy.note}</p>
             <div className="teamSlots">
