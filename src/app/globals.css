@@ -41,6 +41,10 @@ select {
   font: inherit;
 }
 
+input[type="number"] {
+  appearance: textfield;
+}
+
 button,
 select {
   cursor: pointer;
@@ -725,14 +729,23 @@ h2 {
   line-height: 1.35;
 }
 
-.calcControls {
+.calcControls,
+.calcNumberGrid {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-bottom: 14px;
 }
 
-.calcControls label {
+.calcControls {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.calcNumberGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.calcControls label,
+.calcNumberGrid label {
   background: var(--panel);
   border-radius: var(--radius-md);
   color: var(--muted);
@@ -743,10 +756,50 @@ h2 {
   padding: 10px;
 }
 
+.calcNumberGrid input,
+.calcNumberGrid select {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.modifierGrid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.modifierGrid label {
+  align-items: center;
+  background: var(--panel);
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  display: flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px;
+}
+
+.modifierGrid input {
+  accent-color: var(--accent);
+  height: 16px;
+  width: 16px;
+}
+
 .damageResult {
   display: grid;
   gap: 12px;
   grid-template-columns: 1.1fr 0.9fr;
+  margin-top: 2px;
 }
 
 .damageResult > div,
@@ -779,6 +832,43 @@ h2 {
 .koBox strong {
   color: var(--ink);
   font-size: 18px;
+}
+
+.calcBreakdown,
+.rollGrid {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.calcBreakdown {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.calcBreakdown span,
+.rollGrid span {
+  background: var(--panel);
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 9px 10px;
+  text-align: center;
+}
+
+.rollGrid {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.rollGrid span {
+  color: var(--muted);
+}
+
+.calcAssumption {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 12px 0 0;
 }
 
 .threatItem {
@@ -869,9 +959,16 @@ a:focus-visible {
   }
 
   .calcControls,
+  .calcNumberGrid,
+  .modifierGrid,
+  .calcBreakdown,
   .spGrid,
   .metricGrid {
     grid-template-columns: 1fr;
+  }
+
+  .rollGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .teamSlot,

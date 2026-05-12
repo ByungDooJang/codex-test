@@ -29,6 +29,7 @@ import {
 
 type StatKey = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
 type DamageClass = "physical" | "special";
+type NatureModifier = 0.9 | 1 | 1.1;
 
 type Pokemon = ChampionsPokemon & {
   role: string;
@@ -57,6 +58,21 @@ type SavedTeam = {
   owner: string;
 };
 
+type DamageOptions = {
+  level: number;
+  attackSp: number;
+  defenseHpSp: number;
+  defenseSp: number;
+  attackNature: NatureModifier;
+  defenseNature: NatureModifier;
+  attackStage: number;
+  defenseStage: number;
+  burn: boolean;
+  spread: boolean;
+  screen: boolean;
+  critical: boolean;
+};
+
 const statLabels: Record<StatKey, string> = {
   hp: "H",
   atk: "A",
@@ -65,6 +81,12 @@ const statLabels: Record<StatKey, string> = {
   spd: "D",
   spe: "S",
 };
+
+const natureOptions: { label: string; value: NatureModifier }[] = [
+  { label: "하락 0.9x", value: 0.9 },
+  { label: "보정 없음", value: 1 },
+  { label: "상승 1.1x", value: 1.1 },
+];
 
 const strategies = [
   {
@@ -231,13 +253,34 @@ const threatList = [
   { name: "키키링", risk: 57, reason: "우선도 차단으로 후반 정리 루트 방해" },
 ];
 
-function toStat(base: number, sp: number, stat: StatKey) {
+const typeChart: Record<string, { super?: string[]; resisted?: string[]; immune?: string[] }> = {
+  Normal: { resisted: ["Rock", "Steel"], immune: ["Ghost"] },
+  Fire: { super: ["Bug", "Grass", "Ice", "Steel"], resisted: ["Dragon", "Fire", "Rock", "Water"] },
+  Water: { super: ["Fire", "Ground", "Rock"], resisted: ["Dragon", "Grass", "Water"] },
+  Electric: { super: ["Flying", "Water"], resisted: ["Dragon", "Electric", "Grass"], immune: ["Ground"] },
+  Grass: { super: ["Ground", "Rock", "Water"], resisted: ["Bug", "Dragon", "Fire", "Flying", "Grass", "Poison", "Steel"] },
+  Ice: { super: ["Dragon", "Flying", "Grass", "Ground"], resisted: ["Fire", "Ice", "Steel", "Water"] },
+  Fighting: { super: ["Dark", "Ice", "Normal", "Rock", "Steel"], resisted: ["Bug", "Fairy", "Flying", "Poison", "Psychic"], immune: ["Ghost"] },
+  Poison: { super: ["Fairy", "Grass"], resisted: ["Ghost", "Ground", "Poison", "Rock"], immune: ["Steel"] },
+  Ground: { super: ["Electric", "Fire", "Poison", "Rock", "Steel"], resisted: ["Bug", "Grass"], immune: ["Flying"] },
+  Flying: { super: ["Bug", "Fighting", "Grass"], resisted: ["Electric", "Rock", "Steel"] },
+  Psychic: { super: ["Fighting", "Poison"], resisted: ["Psychic", "Steel"], immune: ["Dark"] },
+  Bug: { super: ["Dark", "Grass", "Psychic"], resisted: ["Fairy", "Fighting", "Fire", "Flying", "Ghost", "Poison", "Steel"] },
+  Rock: { super: ["Bug", "Fire", "Flying", "Ice"], resisted: ["Fighting", "Ground", "Steel"] },
+  Ghost: { super: ["Ghost", "Psychic"], resisted: ["Dark"], immune: ["Normal"] },
+  Dragon: { super: ["Dragon"], resisted: ["Steel"], immune: ["Fairy"] },
+  Dark: { super: ["Ghost", "Psychic"], resisted: ["Dark", "Fairy", "Fighting"] },
+  Steel: { super: ["Fairy", "Ice", "Rock"], resisted: ["Electric", "Fire", "Steel", "Water"] },
+  Fairy: { super: ["Dark", "Dragon", "Fighting"], resisted: ["Fire", "Poison", "Steel"] },
+};
+
+function toStat(base: number, sp: number, stat: StatKey, level = 50, nature: NatureModifier = 1) {
   const spAsEv = sp * 8;
   if (stat === "hp") {
-    return Math.floor(((2 * base + 31 + Math.floor(spAsEv / 4)) * 50) / 100) + 60;
+    return Math.floor(((2 * base + 31 + Math.floor(spAsEv / 4)) * level) / 100) + level + 10;
   }
 
-  return Math.floor((Math.floor(((2 * base + 31 + Math.floor(spAsEv / 4)) * 50) / 100) + 5) * 1.0);
+  return Math.floor((Math.floor(((2 * base + 31 + Math.floor(spAsEv / 4)) * level) / 100) + 5) * nature);
 }
 
 function spreadText(sp: Record<StatKey, number>) {
@@ -247,17 +290,71 @@ function spreadText(sp: Record<StatKey, number>) {
     .join(" ");
 }
 
-function damageRange(attacker: Pokemon, defender: Pokemon, move: Move) {
+function stageMultiplier(stage: number) {
+  return stage >= 0 ? (2 + stage) / 2 : 2 / (2 + Math.abs(stage));
+}
+
+function typeEffectiveness(moveType: string, defenderTypes: string[]) {
+  const chart = typeChart[moveType];
+  if (!chart) return 1;
+
+  return defenderTypes.reduce((multiplier, defenderType) => {
+    if (chart.immune?.includes(defenderType)) return multiplier * 0;
+    if (chart.super?.includes(defenderType)) return multiplier * 2;
+    if (chart.resisted?.includes(defenderType)) return multiplier * 0.5;
+    return multiplier;
+  }, 1);
+}
+
+function formatMultiplier(value: number) {
+  return `${Math.round(value * 100) / 100}x`;
+}
+
+function koText(minDamage: number, maxDamage: number, hp: number) {
+  if (minDamage >= hp) return "확정 1타";
+  if (maxDamage >= hp) return "난수 1타";
+  if (minDamage * 2 >= hp) return "확정 2타";
+  if (maxDamage * 2 >= hp) return "난수 2타";
+  if (minDamage * 3 >= hp) return "확정 3타";
+  return "3타 이상";
+}
+
+function damageRange(attacker: Pokemon, defender: Pokemon, move: Move, options: DamageOptions) {
   const attackStat = move.class === "physical" ? "atk" : "spa";
   const defenseStat = move.class === "physical" ? "def" : "spd";
-  const atk = toStat(attacker.base[attackStat], attacker.sp[attackStat], attackStat);
-  const def = toStat(defender.base[defenseStat], defender.sp[defenseStat], defenseStat);
+  const attackStage = options.critical ? Math.max(options.attackStage, 0) : options.attackStage;
+  const defenseStage = options.critical ? Math.min(options.defenseStage, 0) : options.defenseStage;
+  const rawAtk = toStat(attacker.base[attackStat], options.attackSp, attackStat, options.level, options.attackNature);
+  const rawDef = toStat(defender.base[defenseStat], options.defenseSp, defenseStat, options.level, options.defenseNature);
+  const atk = Math.max(1, Math.floor(rawAtk * stageMultiplier(attackStage)));
+  const def = Math.max(1, Math.floor(rawDef * stageMultiplier(defenseStage)));
+  const defenderHp = toStat(defender.base.hp, options.defenseHpSp, "hp", options.level);
   const stab = attacker.types.includes(move.type) ? 1.5 : 1;
-  const baseDamage = Math.floor((Math.floor(((Math.floor((2 * 50) / 5 + 2) * move.power * atk) / def) / 50) + 2) * stab);
+  const effectiveness = typeEffectiveness(move.type, defender.types);
+  const burn = move.class === "physical" && options.burn ? 0.5 : 1;
+  const spread = options.spread ? 0.75 : 1;
+  const screen = options.screen ? 0.5 : 1;
+  const critical = options.critical ? 1.5 : 1;
+  const modifier = stab * effectiveness * burn * spread * screen * critical;
+  const baseDamage = Math.floor(Math.floor((Math.floor((2 * options.level) / 5 + 2) * move.power * atk) / def) / 50) + 2;
+  const rolls = Array.from({ length: 16 }, (_, index) => {
+    const random = 85 + index;
+    return Math.max(1, Math.floor(baseDamage * modifier * random / 100));
+  });
+
   return {
-    min: Math.floor(baseDamage * 0.85),
-    max: baseDamage,
-    defenderHp: toStat(defender.base.hp, defender.sp.hp, "hp"),
+    min: rolls[0],
+    max: rolls[rolls.length - 1],
+    rolls,
+    defenderHp,
+    attackStat,
+    defenseStat,
+    atk,
+    def,
+    stab,
+    effectiveness,
+    modifier,
+    koChance: rolls.filter((roll) => roll >= defenderHp).length,
   };
 }
 
@@ -269,6 +366,20 @@ export default function HomePage() {
   const [attackerId, setAttackerId] = useState((getPokemonByName("Dragonite") ?? pokemonPool[0]).id);
   const [defenderId, setDefenderId] = useState((getPokemonByName("Incineroar") ?? pokemonPool[2]).id);
   const [moveName, setMoveName] = useState(moves[0].name);
+  const [calcOptions, setCalcOptions] = useState<DamageOptions>({
+    level: 50,
+    attackSp: 32,
+    defenseHpSp: 32,
+    defenseSp: 0,
+    attackNature: 1,
+    defenseNature: 1,
+    attackStage: 0,
+    defenseStage: 0,
+    burn: false,
+    spread: false,
+    screen: false,
+    critical: false,
+  });
   const [savedTeams, setSavedTeams] = useState<SavedTeam[]>([]);
   const [saveMessage, setSaveMessage] = useState("브라우저 저장소 사용 중");
   const ownerKey = session?.user?.email ?? "guest";
@@ -277,11 +388,12 @@ export default function HomePage() {
   const attacker = pokemonPool.find((pokemon) => pokemon.id === attackerId) ?? pokemonPool[0];
   const defender = pokemonPool.find((pokemon) => pokemon.id === defenderId) ?? pokemonPool[1];
   const move = moves.find((item) => item.name === moveName) ?? moves[0];
-  const damage = damageRange(attacker, defender, move);
+  const damage = damageRange(attacker, defender, move, calcOptions);
   const damagePercent = {
     min: Math.round((damage.min / damage.defenderHp) * 1000) / 10,
     max: Math.round((damage.max / damage.defenderHp) * 1000) / 10,
   };
+  const oneHitChance = Math.round((damage.koChance / damage.rolls.length) * 100);
 
   const selectedPokemon = team[selectedSlot];
 
@@ -328,6 +440,10 @@ export default function HomePage() {
     const nextPokemon = pokemonPool.find((pokemon) => pokemon.id === id);
     if (!nextPokemon) return;
     setTeam((current) => current.map((pokemon, index) => (index === selectedSlot ? nextPokemon : pokemon)));
+  }
+
+  function updateCalcOption<K extends keyof DamageOptions>(key: K, value: DamageOptions[K]) {
+    setCalcOptions((current) => ({ ...current, [key]: value }));
   }
 
   function saveCurrentTeam() {
@@ -557,7 +673,7 @@ export default function HomePage() {
             <div className="panelHeader">
               <div>
                 <p className="eyebrow">Damage Calculator</p>
-                <h2>챔피언스식 SP 계산 목업</h2>
+                <h2>챔피언스 데미지 계산기</h2>
               </div>
               <Calculator size={24} />
             </div>
@@ -581,6 +697,122 @@ export default function HomePage() {
                 </select>
               </label>
             </div>
+            <div className="calcNumberGrid" aria-label="계산 입력">
+              <label>
+                레벨
+                <input
+                  max={100}
+                  min={1}
+                  type="number"
+                  value={calcOptions.level}
+                  onChange={(event) => updateCalcOption("level", Math.min(100, Math.max(1, Number(event.target.value))) || 50)}
+                />
+              </label>
+              <label>
+                공격 SP
+                <input
+                  max={32}
+                  min={0}
+                  type="number"
+                  value={calcOptions.attackSp}
+                  onChange={(event) => updateCalcOption("attackSp", Math.min(32, Math.max(0, Number(event.target.value))) || 0)}
+                />
+              </label>
+              <label>
+                방어 HP SP
+                <input
+                  max={32}
+                  min={0}
+                  type="number"
+                  value={calcOptions.defenseHpSp}
+                  onChange={(event) => updateCalcOption("defenseHpSp", Math.min(32, Math.max(0, Number(event.target.value))) || 0)}
+                />
+              </label>
+              <label>
+                방어 내구 SP
+                <input
+                  max={32}
+                  min={0}
+                  type="number"
+                  value={calcOptions.defenseSp}
+                  onChange={(event) => updateCalcOption("defenseSp", Math.min(32, Math.max(0, Number(event.target.value))) || 0)}
+                />
+              </label>
+            </div>
+            <div className="calcNumberGrid" aria-label="성격과 랭크 보정">
+              <label>
+                공격 성격
+                <select
+                  value={calcOptions.attackNature}
+                  onChange={(event) => updateCalcOption("attackNature", Number(event.target.value) as NatureModifier)}
+                >
+                  {natureOptions.map((option) => <option key={`atk-${option.value}`} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+              <label>
+                방어 성격
+                <select
+                  value={calcOptions.defenseNature}
+                  onChange={(event) => updateCalcOption("defenseNature", Number(event.target.value) as NatureModifier)}
+                >
+                  {natureOptions.map((option) => <option key={`def-${option.value}`} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+              <label>
+                공격 랭크
+                <input
+                  max={6}
+                  min={-6}
+                  type="number"
+                  value={calcOptions.attackStage}
+                  onChange={(event) => updateCalcOption("attackStage", Math.min(6, Math.max(-6, Number(event.target.value))) || 0)}
+                />
+              </label>
+              <label>
+                방어 랭크
+                <input
+                  max={6}
+                  min={-6}
+                  type="number"
+                  value={calcOptions.defenseStage}
+                  onChange={(event) => updateCalcOption("defenseStage", Math.min(6, Math.max(-6, Number(event.target.value))) || 0)}
+                />
+              </label>
+            </div>
+            <div className="modifierGrid" aria-label="주요 보정">
+              <label>
+                <input
+                  checked={calcOptions.burn}
+                  onChange={(event) => updateCalcOption("burn", event.target.checked)}
+                  type="checkbox"
+                />
+                화상 물리 0.5x
+              </label>
+              <label>
+                <input
+                  checked={calcOptions.spread}
+                  onChange={(event) => updateCalcOption("spread", event.target.checked)}
+                  type="checkbox"
+                />
+                더블 분산 0.75x
+              </label>
+              <label>
+                <input
+                  checked={calcOptions.screen}
+                  onChange={(event) => updateCalcOption("screen", event.target.checked)}
+                  type="checkbox"
+                />
+                벽 보정 0.5x
+              </label>
+              <label>
+                <input
+                  checked={calcOptions.critical}
+                  onChange={(event) => updateCalcOption("critical", event.target.checked)}
+                  type="checkbox"
+                />
+                급소 1.5x
+              </label>
+            </div>
             <div className="damageResult">
               <div>
                 <span>{attacker.displayName}의 {move.displayName}</span>
@@ -588,10 +820,23 @@ export default function HomePage() {
                 <small>{defender.displayName} HP {damage.defenderHp} 기준 {damagePercent.min}% - {damagePercent.max}%</small>
               </div>
               <div className="koBox">
-                <strong>{damagePercent.max >= 100 ? "확정 1타 후보" : damagePercent.min >= 50 ? "확정 2타 후보" : "3타 이상"}</strong>
-                <small>날씨, 벽, 급소, 필드 보정은 다음 단계에서 세부 입력으로 분리한다.</small>
+                <strong>{koText(damage.min, damage.max, damage.defenderHp)}</strong>
+                <small>1타 난수 {damage.koChance}/{damage.rolls.length} · {oneHitChance}%</small>
               </div>
             </div>
+            <div className="calcBreakdown">
+              <span>{damage.attackStat.toUpperCase()} {damage.atk}</span>
+              <span>{damage.defenseStat.toUpperCase()} {damage.def}</span>
+              <span>STAB {formatMultiplier(damage.stab)}</span>
+              <span>상성 {formatMultiplier(damage.effectiveness)}</span>
+              <span>총 보정 {formatMultiplier(damage.modifier)}</span>
+            </div>
+            <div className="rollGrid" aria-label="데미지 난수 16단계">
+              {damage.rolls.map((roll, index) => (
+                <span key={`${roll}-${index}`}>{roll}</span>
+              ))}
+            </div>
+            <p className="calcAssumption">계산 가정은 Lv.{calcOptions.level}, IV 31, SP×8을 EV 상당값으로 환산하는 현재 ChampForge 모델입니다.</p>
           </section>
 
           <section className="panel counterPanel" id="counters">
