@@ -384,6 +384,17 @@ function clampNumber(value: string, min: number, max: number, fallback: number) 
   return Math.min(max, Math.max(min, nextValue));
 }
 
+function defaultSpFor(pokemon: ChampionsPokemon, moveClass: DamageClass) {
+  const attackStat = moveClass === "physical" ? "atk" : "spa";
+  const defenseStat = moveClass === "physical" ? "def" : "spd";
+
+  return {
+    attackSp: pokemon.base[attackStat] >= 90 ? 32 : 0,
+    defenseSp: pokemon.base[defenseStat] >= 90 ? 32 : 0,
+    defenseHpSp: 32,
+  };
+}
+
 export default function CalculatorPage() {
   const [attackerId, setAttackerId] = useState("dragonite");
   const [defenderId, setDefenderId] = useState("incineroar");
@@ -405,8 +416,40 @@ export default function CalculatorPage() {
 
   function updateMove(nextMoveName: string) {
     const nextMove = moves.find((item) => item.name === nextMoveName) ?? moves[0];
+    const nextAttackerSp = defaultSpFor(attacker, nextMove.class);
+    const nextDefenderSp = defaultSpFor(defender, nextMove.class);
     setMoveName(nextMove.name);
-    setOptions((current) => ({ ...current, moveType: nextMove.type, movePower: nextMove.power }));
+    setOptions((current) => ({
+      ...current,
+      moveType: nextMove.type,
+      movePower: nextMove.power,
+      attackSp: nextAttackerSp.attackSp,
+      defenseSp: nextDefenderSp.defenseSp,
+      defenseHpSp: nextDefenderSp.defenseHpSp,
+      manualAttackStat: 0,
+      manualDefenseHp: 0,
+      manualDefenseStat: 0,
+    }));
+  }
+
+  function updateAttacker(nextAttackerId: string) {
+    const nextAttacker = regulationMAEligiblePokemon.find((pokemon) => pokemon.id === nextAttackerId) ?? attacker;
+    const nextSp = defaultSpFor(nextAttacker, move.class);
+    setAttackerId(nextAttacker.id);
+    setOptions((current) => ({ ...current, attackSp: nextSp.attackSp, manualAttackStat: 0 }));
+  }
+
+  function updateDefender(nextDefenderId: string) {
+    const nextDefender = regulationMAEligiblePokemon.find((pokemon) => pokemon.id === nextDefenderId) ?? defender;
+    const nextSp = defaultSpFor(nextDefender, move.class);
+    setDefenderId(nextDefender.id);
+    setOptions((current) => ({
+      ...current,
+      defenseHpSp: nextSp.defenseHpSp,
+      defenseSp: nextSp.defenseSp,
+      manualDefenseHp: 0,
+      manualDefenseStat: 0,
+    }));
   }
 
   return (
@@ -455,7 +498,7 @@ export default function CalculatorPage() {
             <div className="calcNumberGrid">
               <label>
                 포켓몬
-                <select value={attackerId} onChange={(event) => setAttackerId(event.target.value)}>
+                <select value={attackerId} onChange={(event) => updateAttacker(event.target.value)}>
                   {regulationMAEligiblePokemon.map((pokemon) => <option key={pokemon.id} value={pokemon.id}>No.{pokemon.dex} {pokemon.displayName}</option>)}
                 </select>
               </label>
@@ -466,13 +509,13 @@ export default function CalculatorPage() {
                 </select>
               </label>
               <label>
-                타입
+                타입 수동 보정
                 <select value={options.moveType} onChange={(event) => updateOption("moveType", event.target.value)}>
                   {pokemonTypes.map((type) => <option key={type} value={type}>{type}</option>)}
                 </select>
               </label>
               <label>
-                위력
+                위력 수동 보정
                 <input type="number" min={1} max={250} value={options.movePower} onChange={(event) => updateOption("movePower", clampNumber(event.target.value, 1, 250, move.power))} />
               </label>
             </div>
@@ -578,7 +621,7 @@ export default function CalculatorPage() {
             <div className="calcNumberGrid">
               <label>
                 포켓몬
-                <select value={defenderId} onChange={(event) => setDefenderId(event.target.value)}>
+                <select value={defenderId} onChange={(event) => updateDefender(event.target.value)}>
                   {regulationMAEligiblePokemon.map((pokemon) => <option key={pokemon.id} value={pokemon.id}>No.{pokemon.dex} {pokemon.displayName}</option>)}
                 </select>
               </label>

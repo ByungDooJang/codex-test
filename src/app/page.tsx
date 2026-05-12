@@ -653,8 +653,44 @@ export default function HomePage() {
 
   function updateSelectedMove(nextMoveName: string) {
     const nextMove = moves.find((item) => item.name === nextMoveName) ?? moves[0];
+    const nextAttackStat = nextMove.class === "physical" ? "atk" : "spa";
+    const nextDefenseStat = nextMove.class === "physical" ? "def" : "spd";
     setMoveName(nextMove.name);
-    setCalcOptions((current) => ({ ...current, moveType: nextMove.type, movePower: nextMove.power }));
+    setCalcOptions((current) => ({
+      ...current,
+      moveType: nextMove.type,
+      movePower: nextMove.power,
+      attackSp: attacker.base[nextAttackStat] >= 90 ? 32 : 0,
+      defenseHpSp: 32,
+      defenseSp: defender.base[nextDefenseStat] >= 90 ? 32 : 0,
+      manualAttackStat: 0,
+      manualDefenseHp: 0,
+      manualDefenseStat: 0,
+    }));
+  }
+
+  function updateDamageAttacker(nextAttackerId: string) {
+    const nextAttacker = pokemonPool.find((pokemon) => pokemon.id === nextAttackerId) ?? attacker;
+    const nextAttackStat = move.class === "physical" ? "atk" : "spa";
+    setAttackerId(nextAttacker.id);
+    setCalcOptions((current) => ({
+      ...current,
+      attackSp: nextAttacker.base[nextAttackStat] >= 90 ? 32 : 0,
+      manualAttackStat: 0,
+    }));
+  }
+
+  function updateDamageDefender(nextDefenderId: string) {
+    const nextDefender = pokemonPool.find((pokemon) => pokemon.id === nextDefenderId) ?? defender;
+    const nextDefenseStat = move.class === "physical" ? "def" : "spd";
+    setDefenderId(nextDefender.id);
+    setCalcOptions((current) => ({
+      ...current,
+      defenseHpSp: 32,
+      defenseSp: nextDefender.base[nextDefenseStat] >= 90 ? 32 : 0,
+      manualDefenseHp: 0,
+      manualDefenseStat: 0,
+    }));
   }
 
   function saveCurrentTeam() {
@@ -891,7 +927,7 @@ export default function HomePage() {
             <div className="calcControls">
               <label>
                 공격자
-                <select value={attackerId} onChange={(event) => setAttackerId(event.target.value)}>
+                <select value={attackerId} onChange={(event) => updateDamageAttacker(event.target.value)}>
                   {pokemonPool.map((pokemon) => <option key={pokemon.id} value={pokemon.id}>No.{pokemon.dex} {pokemon.displayName}</option>)}
                 </select>
               </label>
@@ -903,20 +939,20 @@ export default function HomePage() {
               </label>
               <label>
                 방어자
-                <select value={defenderId} onChange={(event) => setDefenderId(event.target.value)}>
+                <select value={defenderId} onChange={(event) => updateDamageDefender(event.target.value)}>
                   {pokemonPool.map((pokemon) => <option key={pokemon.id} value={pokemon.id}>No.{pokemon.dex} {pokemon.displayName}</option>)}
                 </select>
               </label>
             </div>
             <div className="calcNumberGrid" aria-label="기술 입력">
               <label>
-                타입
+                타입 수동 보정
                 <select value={calcOptions.moveType} onChange={(event) => updateCalcOption("moveType", event.target.value)}>
                   {pokemonTypes.map((type) => <option key={type} value={type}>{type}</option>)}
                 </select>
               </label>
               <label>
-                위력
+                위력 수동 보정
                 <input
                   max={250}
                   min={1}
