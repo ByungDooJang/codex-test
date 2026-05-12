@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import {
   REGULATION_MA_ELIGIBLE_COUNT,
   REGULATION_MA_MEGA_COUNT,
+  regulationMAAbilityNameKo,
   regulationMAEligiblePokemon,
   type ChampionsPokemon,
 } from "@/data/champions-regulation-ma";
@@ -40,6 +41,7 @@ type Pokemon = ChampionsPokemon & {
 
 type Move = {
   name: string;
+  displayName: string;
   type: string;
   power: number;
   class: DamageClass;
@@ -143,15 +145,23 @@ const initialTeamNames = ["Dragonite", "Gardevoir", "Incineroar", "Farigiraf", "
 const initialTeam = initialTeamNames.map((name) => getPokemonByName(name)).filter((pokemon): pokemon is Pokemon => Boolean(pokemon));
 
 const moves: Move[] = [
-  { name: "Aerial Rend", type: "Flying", power: 120, class: "physical" },
-  { name: "Extreme Speed", type: "Normal", power: 80, class: "physical" },
-  { name: "Moonblast", type: "Fairy", power: 95, class: "special" },
-  { name: "Psychic", type: "Psychic", power: 90, class: "special" },
-  { name: "Power Gem", type: "Rock", power: 80, class: "special" },
-  { name: "Weather Ball", type: "Water", power: 100, class: "special" },
-  { name: "Eruption", type: "Fire", power: 150, class: "special" },
-  { name: "Kowtow Cleave", type: "Dark", power: 85, class: "physical" },
+  { name: "Aerial Rend", displayName: "에어리얼렌드", type: "Flying", power: 120, class: "physical" },
+  { name: "Extreme Speed", displayName: "신속", type: "Normal", power: 80, class: "physical" },
+  { name: "Moonblast", displayName: "문포스", type: "Fairy", power: 95, class: "special" },
+  { name: "Psychic", displayName: "사이코키네시스", type: "Psychic", power: 90, class: "special" },
+  { name: "Power Gem", displayName: "파워젬", type: "Rock", power: 80, class: "special" },
+  { name: "Weather Ball", displayName: "웨더볼", type: "Water", power: 100, class: "special" },
+  { name: "Eruption", displayName: "분화", type: "Fire", power: 150, class: "special" },
+  { name: "Kowtow Cleave", displayName: "도각참", type: "Dark", power: 85, class: "physical" },
 ];
+
+function abilityKo(ability: string) {
+  return regulationMAAbilityNameKo[ability as keyof typeof regulationMAAbilityNameKo] ?? ability;
+}
+
+function moveKo(moveName: string) {
+  return moves.find((move) => move.name === moveName)?.displayName ?? moveName;
+}
 
 const typeWeaknessRows = [
   { type: "Rock", weak: 4, resist: 1, note: "메가 망나뇽 축의 최우선 보완 지점" },
@@ -441,14 +451,14 @@ export default function HomePage() {
             </label>
 
             <div className="setMeta">
-              <span>특성 · {selectedPokemon.ability}</span>
+              <span>특성 · {abilityKo(selectedPokemon.ability)}</span>
               <span>도구 · {selectedPokemon.item}</span>
               <span>역할 · {selectedPokemon.role}</span>
             </div>
 
             <div className="moveGrid">
               {selectedPokemon.moves.map((item) => (
-                <span key={item}>{item}</span>
+                <span key={item}>{moveKo(item)}</span>
               ))}
             </div>
 
@@ -508,7 +518,7 @@ export default function HomePage() {
               <label>
                 기술
                 <select value={moveName} onChange={(event) => setMoveName(event.target.value)}>
-                  {moves.map((item) => <option key={item.name}>{item.name}</option>)}
+                  {moves.map((item) => <option key={item.name} value={item.name}>{item.displayName}</option>)}
                 </select>
               </label>
               <label>
@@ -520,7 +530,7 @@ export default function HomePage() {
             </div>
             <div className="damageResult">
               <div>
-                <span>{attacker.displayName}의 {move.name}</span>
+                <span>{attacker.displayName}의 {move.displayName}</span>
                 <strong>{damage.min} - {damage.max}</strong>
                 <small>{defender.displayName} HP {damage.defenderHp} 기준 {damagePercent.min}% - {damagePercent.max}%</small>
               </div>

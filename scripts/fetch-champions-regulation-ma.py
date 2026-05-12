@@ -92,6 +92,14 @@ def korean_species_name(species_url: str, fallback: str) -> str:
     return fallback
 
 
+def korean_resource_name(resource_url: str, fallback: str) -> str:
+    resource = fetch_json(resource_url)
+    for entry in resource.get("names", []):
+        if entry.get("language", {}).get("name") == "ko":
+            return entry["name"]
+    return fallback
+
+
 def parse_cp_cards(section: str) -> list[dict]:
     cards = []
     for raw in re.findall(r"\{\{CPCard\|([^}]+)\}\}", section):
@@ -158,10 +166,21 @@ def main() -> None:
     mega_cards = parse_cp_cards(raw[mega_start:])
 
     entries = []
+    ability_urls = {}
     for index, card in enumerate(eligible_cards, start=1):
-        entries.append(to_data_entry(card))
+        entry = to_data_entry(card)
+        entries.append(entry)
+        for ability in entry["abilities"]:
+            ability_urls[ability] = f"{POKEAPI}/ability/{quote(ability)}"
         if index % 25 == 0:
             print(f"fetched {index}/{len(eligible_cards)}")
+        time.sleep(0.03)
+
+    ability_name_ko = {}
+    for index, (ability, url) in enumerate(sorted(ability_urls.items()), start=1):
+        ability_name_ko[ability] = korean_resource_name(url, ability)
+        if index % 25 == 0:
+            print(f"fetched ability names {index}/{len(ability_urls)}")
         time.sleep(0.03)
 
     mega_entries = [
@@ -192,6 +211,7 @@ def main() -> None:
         f"export const REGULATION_MA_ELIGIBLE_COUNT = {len(entries)};\n"
         f"export const REGULATION_MA_MEGA_COUNT = {len(mega_entries)};\n\n"
         f"export const regulationMAEligiblePokemon = {json.dumps(entries, ensure_ascii=False, indent=2)} as const satisfies readonly ChampionsPokemon[];\n\n"
+        f"export const regulationMAAbilityNameKo = {json.dumps(ability_name_ko, ensure_ascii=False, indent=2)} as const;\n\n"
         f"export const regulationMAMegaEvolutions = {json.dumps(mega_entries, ensure_ascii=False, indent=2)} as const;\n",
         encoding="utf-8",
     )
