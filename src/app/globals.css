@@ -420,7 +420,7 @@ h2 {
 }
 
 .lowerGrid {
-  grid-template-columns: 1.35fr 1fr;
+  grid-template-columns: 1fr;
 }
 
 .panel {
@@ -744,6 +744,13 @@ h2 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.calcSectionTitle {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 950;
+  margin: 16px 0 8px;
+}
+
 .calcControls label,
 .calcNumberGrid label {
   background: var(--panel);
@@ -767,6 +774,11 @@ h2 {
   min-height: 38px;
   padding: 8px 10px;
   width: 100%;
+}
+
+.calcNumberGrid input:disabled {
+  color: var(--muted);
+  cursor: default;
 }
 
 .modifierGrid {
@@ -842,7 +854,7 @@ h2 {
 }
 
 .calcBreakdown {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .calcBreakdown span,
