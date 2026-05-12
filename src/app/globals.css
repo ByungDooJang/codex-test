@@ -65,6 +65,12 @@ a {
   min-height: 100vh;
 }
 
+.calculatorPage {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
 .sidebar {
   background: var(--canvas);
   border-right: 1px solid var(--line);
@@ -73,6 +79,18 @@ a {
   gap: 22px;
   min-height: 100vh;
   padding: 20px;
+  position: sticky;
+  top: 0;
+}
+
+.calcSidebar {
+  background: var(--canvas);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-height: 100vh;
+  padding: 24px 18px;
   position: sticky;
   top: 0;
 }
@@ -151,6 +169,100 @@ a {
 .sideNav a.active {
   background: var(--ink);
   color: white;
+}
+
+.calculatorWorkspace {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.calculatorHero {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+}
+
+.calculatorHero h1 {
+  color: var(--ink);
+  font-size: clamp(34px, 5vw, 58px);
+  letter-spacing: -1.2px;
+  line-height: 1;
+  margin: 0;
+}
+
+.calculatorHero p {
+  max-width: 780px;
+}
+
+.calculatorStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.calculatorStats span,
+.calcNote {
+  background: var(--panel);
+  border-radius: var(--radius-md);
+}
+
+.calculatorStats span {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 12px;
+}
+
+.calcNote {
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  gap: 8px;
+  line-height: 1.45;
+  padding: 14px;
+}
+
+.calcNote strong {
+  color: var(--ink);
+}
+
+.calculatorGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.calculatorFormPanel {
+  align-content: start;
+}
+
+.calculatorResultPanel {
+  position: sticky;
+  bottom: 14px;
+  z-index: 2;
+}
+
+.resultActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.resultActions button {
+  align-items: center;
+  background: var(--panel-strong);
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 14px;
 }
 
 .savedTeams {
@@ -933,17 +1045,20 @@ a:focus-visible {
 }
 
 @media (max-width: 1180px) {
-  .appShell {
+  .appShell,
+  .calculatorPage {
     grid-template-columns: 1fr;
   }
 
-  .sidebar {
+  .sidebar,
+  .calcSidebar {
     min-height: auto;
     position: static;
   }
 
   .workGrid,
   .lowerGrid,
+  .calculatorGrid,
   .strategyStrip,
   .dataGrid {
     grid-template-columns: 1fr;
@@ -952,7 +1067,12 @@ a:focus-visible {
 
 @media (max-width: 720px) {
   .mainWorkspace,
+  .calculatorWorkspace,
   .sidebar {
+    padding: 14px;
+  }
+
+  .calcSidebar {
     padding: 14px;
   }
 

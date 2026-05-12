@@ -711,7 +711,7 @@ export default function HomePage() {
 
         <nav className="sideNav" aria-label="주요 기능">
           <a href="#builder" className="active"><Swords size={17} /> 팀 빌더</a>
-          <a href="#damage"><Calculator size={17} /> 데미지 계산기</a>
+          <a href="/calculator"><Calculator size={17} /> 데미지 계산기</a>
           <a href="#counters"><Crosshair size={17} /> 카운터 추천</a>
           <a href="#data"><Database size={17} /> 데이터 허브</a>
         </nav>
